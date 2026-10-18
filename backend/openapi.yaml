@@ -1,0 +1,445 @@
+openapi: 3.1.0
+info:
+  title: Технотека.ИИ — API прототипа
+  version: 0.2.0
+  description: |
+    Контракт фронтенд ↔ бэкенд (B03). Все ответы — JSON, кодировка UTF-8.
+    Авторизация пользователя: приглашение организации (токен из ссылки) → cookie сессии.
+    Авторизация модератора: HTTP Basic на /api/admin/*.
+    Приглашения создаются из консоли: python -m backend.cli invite "Организация" ai,manual
+
+    Статусы карточки: draft → processing → ready → submitted → accepted | returned.
+    В режиме manual шага processing/ready нет: draft → submitted.
+    Ошибка извлечения возвращает карточку в draft, текст ошибки — в ai.errors.
+servers:
+  - url: /api
+tags:
+  - name: Пользователь
+  - name: Модератор
+paths:
+  /schema:
+    get:
+      tags: [Пользователь]
+      summary: JSON-схема карточки (card_schema_v0.json) — по ней строится форма
+      operationId: getSchema
+      responses:
+        "200":
+          description: JSON Schema с ключами x-section, x-mvp, x-kind
+          content:
+            application/json:
+              schema: {type: object}
+  /session:
+    post:
+      tags: [Пользователь]
+      summary: Вход по приглашению; ставит cookie сессии
+      operationId: createSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: {type: string}
+      responses:
+        "200":
+          description: Сессия создана
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Session"}
+        "404": {$ref: "#/components/responses/Error"}
+    get:
+      tags: [Пользователь]
+      summary: Текущая сессия по cookie (фронт проверяет вход без повторного токена)
+      operationId: getSession
+      responses:
+        "200":
+          description: Сессия
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Session"}
+        "401": {$ref: "#/components/responses/Error"}
+  /health:
+    get:
+      tags: [Пользователь]
+      summary: Проверка работы; какой провайдер извлечения включён
+      operationId: health
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: {type: boolean}
+                  provider: {type: string}
+                  schema_version: {type: string}
+  /cards:
+    get:
+      tags: [Пользователь]
+      summary: Карточки текущей организации
+      operationId: listMyCards
+      responses:
+        "200":
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/CardShort"}
+    post:
+      tags: [Пользователь]
+      summary: Создать карточку (режим берётся из плана приглашения)
+      operationId: createCard
+      responses:
+        "201":
+          description: Создана
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Card"}
+        "409": {$ref: "#/components/responses/Error"}
+  /cards/{id}:
+    parameters:
+      - {$ref: "#/components/parameters/CardId"}
+    get:
+      tags: [Пользователь]
+      summary: Карточка целиком. Пока status=processing, фронт опрашивает раз в 2 с
+      operationId: getCard
+      responses:
+        "200":
+          description: Карточка
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Card"}
+        "404": {$ref: "#/components/responses/Error"}
+  /cards/{id}/files:
+    parameters:
+      - {$ref: "#/components/parameters/CardId"}
+    post:
+      tags: [Пользователь]
+      summary: Загрузить файлы (PDF, DOCX, PPTX; до 5 файлов, до 20 МБ каждый)
+      operationId: uploadFiles
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items: {type: string, format: binary}
+      responses:
+        "200":
+          description: Список файлов карточки
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/FileInfo"}
+        "413": {$ref: "#/components/responses/Error"}
+        "415": {$ref: "#/components/responses/Error"}
+  /cards/{id}/files/{file_id}:
+    parameters:
+      - {$ref: "#/components/parameters/CardId"}
+      - name: file_id
+        in: path
+        required: true
+        schema: {type: integer}
+    delete:
+      tags: [Пользователь]
+      summary: Удалить файл до запуска извлечения
+      operationId: deleteFile
+      responses:
+        "204": {description: Удалён}
+  /cards/{id}/extract:
+    parameters:
+      - {$ref: "#/components/parameters/CardId"}
+    post:
+      tags: [Пользователь]
+      summary: Запустить автозаполнение (только mode=ai). Работает в фоне 30–90 с
+      operationId: startExtraction
+      responses:
+        "202":
+          description: Принято, status=processing
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CardShort"}
+        "409": {$ref: "#/components/responses/Error"}
+  /cards/{id}/values:
+    parameters:
+      - {$ref: "#/components/parameters/CardId"}
+    put:
+      tags: [Пользователь]
+      summary: Автосохранение формы (полностью заменяет values)
+      operationId: saveValues
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [values]
+              properties:
+                values: {$ref: "#/components/schemas/CardValues"}
+      responses:
+        "200":
+          description: Сохранено; problems — ошибки формата по полям (не блокируют сохранение)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  problems:
+                    type: object
+                    additionalProperties: {type: string}
+  /cards/{id}/submit:
+    parameters:
+      - {$ref: "#/components/parameters/CardId"}
+    post:
+      tags: [Пользователь]
+      summary: Отправить на модерацию. Проверяет обязательные поля и формат
+      operationId: submitCard
+      responses:
+        "200":
+          description: status=submitted
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CardShort"}
+        "422":
+          description: Не заполнены обязательные поля или ошибки формата
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  problems:
+                    type: object
+                    additionalProperties: {type: string}
+  /events:
+    post:
+      tags: [Пользователь]
+      summary: Пакет событий для замера времени (фронт отправляет раз в 10 с и при уходе со страницы)
+      operationId: postEvents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: {$ref: "#/components/schemas/Event"}
+      responses:
+        "204": {description: Принято}
+  /admin/cards:
+    get:
+      tags: [Модератор]
+      summary: Все карточки с фильтром по статусу
+      operationId: adminListCards
+      security: [{basic: []}]
+      parameters:
+        - name: status
+          in: query
+          schema: {$ref: "#/components/schemas/Status"}
+      responses:
+        "200":
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/CardShort"}
+  /admin/cards/{id}:
+    parameters:
+      - {$ref: "#/components/parameters/CardId"}
+    get:
+      tags: [Модератор]
+      summary: Карточка с файлами, ответом ИИ и историей модерации
+      operationId: adminGetCard
+      security: [{basic: []}]
+      responses:
+        "200":
+          description: Карточка
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: "#/components/schemas/Card"}
+                  - type: object
+                    properties:
+                      org_label: {type: string}
+                      minutes: {type: [number, "null"], description: время заполнения из card_timing}
+                      moderation:
+                        type: array
+                        items: {$ref: "#/components/schemas/Moderation"}
+  /admin/cards/{id}/moderation:
+    parameters:
+      - {$ref: "#/components/parameters/CardId"}
+    post:
+      tags: [Модератор]
+      summary: Решение по чек-листу; status → accepted | returned
+      operationId: moderateCard
+      security: [{basic: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/Moderation"}
+      responses:
+        "200":
+          description: Решение сохранено
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CardShort"}
+  /admin/cards/{id}/files/{file_id}:
+    parameters:
+      - {$ref: "#/components/parameters/CardId"}
+      - name: file_id
+        in: path
+        required: true
+        schema: {type: integer}
+    get:
+      tags: [Модератор]
+      summary: Скачать материал, загруженный организацией
+      operationId: adminDownloadFile
+      security: [{basic: []}]
+      responses:
+        "200":
+          description: Файл
+          content:
+            application/octet-stream:
+              schema: {type: string, format: binary}
+  /admin/export.xlsx:
+    get:
+      tags: [Модератор]
+      summary: Выгрузка карточек, времени заполнения и модерации для расчёта КПЭ
+      operationId: exportXlsx
+      security: [{basic: []}]
+      responses:
+        "200":
+          description: Файл Excel
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: {type: string, format: binary}
+components:
+  securitySchemes:
+    basic: {type: http, scheme: basic}
+  parameters:
+    CardId:
+      name: id
+      in: path
+      required: true
+      schema: {type: integer}
+  responses:
+    Error:
+      description: Ошибка
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [detail]
+            properties:
+              detail: {type: string}
+  schemas:
+    Mode:
+      type: string
+      enum: [ai, manual]
+    Status:
+      type: string
+      enum: [draft, processing, ready, submitted, accepted, returned]
+    Session:
+      type: object
+      properties:
+        org_label: {type: string}
+        plan:
+          type: array
+          items: {$ref: "#/components/schemas/Mode"}
+        cards:
+          type: array
+          items: {$ref: "#/components/schemas/CardShort"}
+    CardShort:
+      type: object
+      required: [id, mode, status]
+      properties:
+        id: {type: integer}
+        mode: {$ref: "#/components/schemas/Mode"}
+        status: {$ref: "#/components/schemas/Status"}
+        title: {type: [string, "null"], description: values.product_short_name или product_name}
+        updated_at: {type: string, format: date-time}
+    CardValues:
+      type: object
+      description: Значения полей по card_schema_v0.json (ключ поля → значение). Пустое поле — null или отсутствует.
+      additionalProperties: true
+    FieldAI:
+      type: object
+      description: Что предложил ИИ по полю. Фронт подсвечивает поле, показывает цитату; verified=false → «проверьте».
+      properties:
+        value: {description: значение в формате поля}
+        quote: {type: [string, "null"]}
+        quote_score: {type: [integer, "null"], minimum: 0, maximum: 100}
+        verified: {type: boolean}
+    AIResult:
+      type: object
+      description: ExtractionResult из ml/extract.py
+      properties:
+        card:
+          type: object
+          additionalProperties: {$ref: "#/components/schemas/FieldAI"}
+        provider: {type: string}
+        model: {type: string}
+        schema_mode: {type: string, enum: [full, flat, ""]}
+        latency_s: {type: number}
+        tokens_in: {type: integer}
+        tokens_out: {type: integer}
+        warnings:
+          type: array
+          items: {type: string}
+        errors:
+          type: array
+          items: {type: string}
+    FileInfo:
+      type: object
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        size: {type: integer}
+        mime: {type: string}
+    Card:
+      allOf:
+        - {$ref: "#/components/schemas/CardShort"}
+        - type: object
+          properties:
+            schema_version: {type: string}
+            values: {$ref: "#/components/schemas/CardValues"}
+            ai:
+              oneOf:
+                - {$ref: "#/components/schemas/AIResult"}
+                - {type: "null"}
+            files:
+              type: array
+              items: {$ref: "#/components/schemas/FileInfo"}
+            return_comment:
+              type: [string, "null"]
+              description: Только в GET /cards/{id} при status=returned — комментарий модератора
+    Event:
+      type: object
+      required: [card_id, type, ts]
+      properties:
+        card_id: {type: integer}
+        type:
+          type: string
+          enum: [card_opened, files_uploaded, extraction_started, extraction_done, field_changed, submitted]
+        field: {type: [string, "null"]}
+        ts: {type: string, format: date-time, description: время браузера}
+    Moderation:
+      type: object
+      required: [checklist, verdict]
+      properties:
+        moderator: {type: string, readOnly: true}
+        checklist:
+          type: object
+          additionalProperties: {type: boolean}
+        verdict: {type: string, enum: [accepted, returned]}
+        comment: {type: [string, "null"]}
+        created_at: {type: string, format: date-time, readOnly: true}

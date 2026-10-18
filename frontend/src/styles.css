@@ -1,0 +1,91 @@
+:root {
+  --brand: #1f4e79;
+  --bg: #f4f6f9;
+  --line: #e3e8ef;
+  --muted: #6b7686;
+  --ai: #e8f1fb;
+  --warn: #fff7e6;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: #1d2733; }
+
+.top {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 60px; padding: 0 24px; background: #fff; border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 12px; color: inherit; }
+.brand b { display: block; font-size: 16px; line-height: 1.1; }
+.brand small { display: block; color: var(--muted); font-size: 12px; }
+.logo {
+  width: 34px; height: 34px; border-radius: 8px; background: var(--brand); color: #fff;
+  display: grid; place-items: center; font-weight: 700; font-size: 18px;
+}
+.pilot { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 20px; padding: 2px 10px; }
+
+.page { max-width: 1240px; margin: 0 auto; padding: 24px 24px 120px; }
+.narrow { max-width: 760px; margin: 0 auto; }
+.center { display: grid; place-items: center; min-height: 40vh; }
+.mb { margin-bottom: 16px; }
+.mt { margin-top: 12px; }
+.back { display: inline-flex; gap: 6px; align-items: center; margin-bottom: 12px; color: var(--muted); }
+.card-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.card-page { max-width: 900px; margin: 0 auto; }
+
+/* главная */
+.home-card { margin-bottom: 12px; }
+.home-row { display: flex; align-items: center; gap: 16px; }
+.home-icon { width: 44px; height: 44px; border-radius: 10px; background: var(--ai); color: var(--brand); display: grid; place-items: center; font-size: 20px; }
+
+/* загрузка и обработка */
+.files { margin-top: 12px; }
+.fname { margin: 0 8px; }
+.step-actions { margin-top: 20px; display: flex; justify-content: flex-end; }
+.processing .ant-card-body { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 48px 24px; text-align: center; }
+
+/* форма */
+.section { margin-bottom: 16px; }
+.section > .ant-card-head { background: #fafbfd; }
+.field { padding: 12px 12px 14px; margin: 0 -12px; border-radius: 8px; border-left: 3px solid transparent; }
+.field + div .field, .section .ant-card-body > div + div .field { border-top: 1px solid #f0f2f5; }
+.field-ai { background: var(--ai); border-left-color: #6aa1d8; }
+.field-error { background: #fff1f0; border-left-color: #ff4d4f; }
+.field-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+.field-label { font-weight: 600; }
+.req { color: #cf1322; }
+.field-help { color: var(--muted); font-size: 12.5px; margin-bottom: 6px; }
+.field-problem { color: #cf1322; font-size: 13px; margin-top: 4px; }
+.field-note { color: var(--muted); font-size: 12.5px; margin-top: 6px; font-style: italic; }
+.quote { margin-top: 6px; font-size: 12.5px; color: #44546a; border-left: 2px solid #9dbbe0; padding-left: 8px; }
+.quote-bad { color: #ad6800; border-left-color: #ffc069; background: var(--warn); padding: 4px 8px; }
+.quote-label { color: var(--muted); }
+.quote-bad .quote-label { color: #ad6800; }
+.checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
+.kv { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.kv-row { display: grid; grid-template-columns: 1fr 1fr 32px; gap: 6px; width: 100%; }
+.ant-input-disabled, .ant-select-disabled .ant-select-selector, .ant-input-number-disabled {
+  color: #1d2733 !important; background: #fbfcfd !important; cursor: default !important;
+}
+.ta { padding-bottom: 18px; } /* место под счётчик символов, чтобы не наезжал на цитату */
+.warn { margin: 4px 0 0; padding-left: 18px; }
+
+/* нижняя панель */
+.bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; background: #fff; border-top: 1px solid var(--line); box-shadow: 0 -4px 16px rgba(20, 40, 70, .06); }
+.bottom-inner { max-width: 900px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; gap: 20px; }
+.bottom-progress { flex: 1; min-width: 160px; }
+.save-state { font-size: 13px; }
+
+/* админка */
+.admin-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.login { max-width: 380px; margin: 60px auto; }
+.side { position: sticky; top: 84px; }
+.invite-url { max-width: 380px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+
+@media (max-width: 640px) {
+  .top { padding: 0 16px; }
+  .page { padding: 16px 16px 160px; }
+  .bottom-inner { flex-wrap: wrap; padding: 10px 16px; gap: 8px; }
+  .bottom-inner .ant-btn { width: 100%; }
+  .kv-row { grid-template-columns: 1fr 1fr 28px; }
+  .side { position: static; }
+}

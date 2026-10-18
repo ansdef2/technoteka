@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0"
+  xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0"
+  id="Definitions_tehnoteka" targetNamespace="https://tehnoteka.example/bpmn"
+  exporter="tehnoteka docs/make_bpmn.py" exporterVersion="1">
+  <bpmn:collaboration id="Collab_pilot">
+    <bpmn:participant id="Pool_pilot" name="Пилот Технотека.ИИ: заполнение карточки разработки" processRef="Process_pilot" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_pilot" name="Заполнение и модерация карточки" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_pilot">
+      <bpmn:lane id="Lane_org" name="Организация (МСП / НИИ)"><bpmn:flowNodeRef>t_open</bpmn:flowNodeRef><bpmn:flowNodeRef>g_mode</bpmn:flowNodeRef><bpmn:flowNodeRef>t_upload</bpmn:flowNodeRef><bpmn:flowNodeRef>t_manual</bpmn:flowNodeRef><bpmn:flowNodeRef>t_review</bpmn:flowNodeRef><bpmn:flowNodeRef>g_join</bpmn:flowNodeRef><bpmn:flowNodeRef>t_submit</bpmn:flowNodeRef><bpmn:flowNodeRef>t_fix</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_sys" name="Система Технотека.ИИ"><bpmn:flowNodeRef>t_parse</bpmn:flowNodeRef><bpmn:flowNodeRef>t_llm</bpmn:flowNodeRef><bpmn:flowNodeRef>g_ext</bpmn:flowNodeRef><bpmn:flowNodeRef>t_validate</bpmn:flowNodeRef><bpmn:flowNodeRef>g_valid</bpmn:flowNodeRef><bpmn:flowNodeRef>t_fixtime</bpmn:flowNodeRef></bpmn:lane>
+      <bpmn:lane id="Lane_mod" name="Команда проекта (модератор)"><bpmn:flowNodeRef>s_start</bpmn:flowNodeRef><bpmn:flowNodeRef>t_invite</bpmn:flowNodeRef><bpmn:flowNodeRef>t_check</bpmn:flowNodeRef><bpmn:flowNodeRef>g_ok</bpmn:flowNodeRef><bpmn:flowNodeRef>t_accept</bpmn:flowNodeRef><bpmn:flowNodeRef>e_accepted</bpmn:flowNodeRef><bpmn:flowNodeRef>t_return</bpmn:flowNodeRef><bpmn:flowNodeRef>s_window</bpmn:flowNodeRef><bpmn:flowNodeRef>t_export</bpmn:flowNodeRef><bpmn:flowNodeRef>e_kpi</bpmn:flowNodeRef></bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="s_start" name="Организация согласилась на пилот"><bpmn:outgoing>f1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:userTask id="t_invite" name="Создать приглашение и отправить ссылку"><bpmn:incoming>f1</bpmn:incoming><bpmn:outgoing>f2</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="t_open" name="Открыть ссылку и начать карточку"><bpmn:incoming>f2</bpmn:incoming><bpmn:outgoing>f3</bpmn:outgoing></bpmn:userTask>
+    <bpmn:exclusiveGateway id="g_mode" name="Режим карточки?"><bpmn:incoming>f3</bpmn:incoming><bpmn:outgoing>f4</bpmn:outgoing><bpmn:outgoing>f5</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:userTask id="t_upload" name="Загрузить материалы (PDF, DOCX, PPTX)"><bpmn:incoming>f4</bpmn:incoming><bpmn:incoming>f10</bpmn:incoming><bpmn:outgoing>f6</bpmn:outgoing></bpmn:userTask>
+    <bpmn:serviceTask id="t_parse" name="Извлечь текст из файлов"><bpmn:incoming>f6</bpmn:incoming><bpmn:outgoing>f7</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="t_llm" name="Заполнить поля моделью и проверить цитаты"><bpmn:incoming>f7</bpmn:incoming><bpmn:outgoing>f8</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="g_ext" name="Удалось заполнить?"><bpmn:incoming>f8</bpmn:incoming><bpmn:outgoing>f9</bpmn:outgoing><bpmn:outgoing>f10</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:userTask id="t_manual" name="Заполнить поля вручную"><bpmn:incoming>f5</bpmn:incoming><bpmn:outgoing>f12</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="t_review" name="Проверить и дополнить поля"><bpmn:incoming>f9</bpmn:incoming><bpmn:outgoing>f11</bpmn:outgoing></bpmn:userTask>
+    <bpmn:exclusiveGateway id="g_join" name=""><bpmn:incoming>f11</bpmn:incoming><bpmn:incoming>f12</bpmn:incoming><bpmn:outgoing>f13</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:userTask id="t_submit" name="Отправить на модерацию"><bpmn:incoming>f13</bpmn:incoming><bpmn:incoming>f17</bpmn:incoming><bpmn:outgoing>f14</bpmn:outgoing></bpmn:userTask>
+    <bpmn:serviceTask id="t_validate" name="Проверить обязательные поля и формат"><bpmn:incoming>f14</bpmn:incoming><bpmn:outgoing>f15</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="g_valid" name="Есть ошибки?"><bpmn:incoming>f15</bpmn:incoming><bpmn:outgoing>f16</bpmn:outgoing><bpmn:outgoing>f18</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:userTask id="t_fix" name="Исправить отмеченные поля"><bpmn:incoming>f16</bpmn:incoming><bpmn:incoming>f24</bpmn:incoming><bpmn:outgoing>f17</bpmn:outgoing></bpmn:userTask>
+    <bpmn:serviceTask id="t_fixtime" name="Зафиксировать время, статус «На модерации»"><bpmn:incoming>f18</bpmn:incoming><bpmn:outgoing>f19</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:userTask id="t_check" name="Проверить карточку по чек-листу и материалам"><bpmn:incoming>f19</bpmn:incoming><bpmn:outgoing>f20</bpmn:outgoing></bpmn:userTask>
+    <bpmn:exclusiveGateway id="g_ok" name="Карточка корректна?"><bpmn:incoming>f20</bpmn:incoming><bpmn:outgoing>f21</bpmn:outgoing><bpmn:outgoing>f23</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:userTask id="t_accept" name="Принять карточку"><bpmn:incoming>f21</bpmn:incoming><bpmn:outgoing>f22</bpmn:outgoing></bpmn:userTask>
+    <bpmn:endEvent id="e_accepted" name="Карточка принята"><bpmn:incoming>f22</bpmn:incoming></bpmn:endEvent>
+    <bpmn:userTask id="t_return" name="Вернуть с комментарием"><bpmn:incoming>f23</bpmn:incoming><bpmn:outgoing>f24</bpmn:outgoing></bpmn:userTask>
+    <bpmn:startEvent id="s_window" name="Окно пилота закрыто"><bpmn:outgoing>f25</bpmn:outgoing><bpmn:timerEventDefinition id="td_window" /></bpmn:startEvent>
+    <bpmn:userTask id="t_export" name="Выгрузить Excel и посчитать КПЭ"><bpmn:incoming>f25</bpmn:incoming><bpmn:outgoing>f26</bpmn:outgoing></bpmn:userTask>
+    <bpmn:endEvent id="e_kpi" name="КПЭ рассчитаны"><bpmn:incoming>f26</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="s_start" targetRef="t_invite" />
+    <bpmn:sequenceFlow id="f2" sourceRef="t_invite" targetRef="t_open" />
+    <bpmn:sequenceFlow id="f3" sourceRef="t_open" targetRef="g_mode" />
+    <bpmn:sequenceFlow id="f4" name="с ИИ" sourceRef="g_mode" targetRef="t_upload" />
+    <bpmn:sequenceFlow id="f5" name="вручную" sourceRef="g_mode" targetRef="t_manual" />
+    <bpmn:sequenceFlow id="f6" sourceRef="t_upload" targetRef="t_parse" />
+    <bpmn:sequenceFlow id="f7" sourceRef="t_parse" targetRef="t_llm" />
+    <bpmn:sequenceFlow id="f8" sourceRef="t_llm" targetRef="g_ext" />
+    <bpmn:sequenceFlow id="f9" name="да" sourceRef="g_ext" targetRef="t_review" />
+    <bpmn:sequenceFlow id="f10" name="нет: другие файлы" sourceRef="g_ext" targetRef="t_upload" />
+    <bpmn:sequenceFlow id="f11" sourceRef="t_review" targetRef="g_join" />
+    <bpmn:sequenceFlow id="f12" sourceRef="t_manual" targetRef="g_join" />
+    <bpmn:sequenceFlow id="f13" sourceRef="g_join" targetRef="t_submit" />
+    <bpmn:sequenceFlow id="f14" sourceRef="t_submit" targetRef="t_validate" />
+    <bpmn:sequenceFlow id="f15" sourceRef="t_validate" targetRef="g_valid" />
+    <bpmn:sequenceFlow id="f16" name="да" sourceRef="g_valid" targetRef="t_fix" />
+    <bpmn:sequenceFlow id="f17" sourceRef="t_fix" targetRef="t_submit" />
+    <bpmn:sequenceFlow id="f18" name="нет" sourceRef="g_valid" targetRef="t_fixtime" />
+    <bpmn:sequenceFlow id="f19" sourceRef="t_fixtime" targetRef="t_check" />
+    <bpmn:sequenceFlow id="f20" sourceRef="t_check" targetRef="g_ok" />
+    <bpmn:sequenceFlow id="f21" name="да" sourceRef="g_ok" targetRef="t_accept" />
+    <bpmn:sequenceFlow id="f22" sourceRef="t_accept" targetRef="e_accepted" />
+    <bpmn:sequenceFlow id="f23" name="нет" sourceRef="g_ok" targetRef="t_return" />
+    <bpmn:sequenceFlow id="f24" sourceRef="t_return" targetRef="t_fix" />
+    <bpmn:sequenceFlow id="f25" sourceRef="s_window" targetRef="t_export" />
+    <bpmn:sequenceFlow id="f26" sourceRef="t_export" targetRef="e_kpi" />
+    <bpmn:textAnnotation id="a1"><bpmn:text>Порядок двух карточек чередуем: половине организаций — сначала ИИ, половине — сначала вручную</bpmn:text></bpmn:textAnnotation>
+    <bpmn:association id="a1_as" sourceRef="t_invite" targetRef="a1" />
+    <bpmn:textAnnotation id="a2"><bpmn:text>Рядом с каждым полем — цитата из материалов. Метка «проверьте» — цитата не найдена в тексте</bpmn:text></bpmn:textAnnotation>
+    <bpmn:association id="a2_as" sourceRef="t_review" targetRef="a2" />
+    <bpmn:textAnnotation id="a3"><bpmn:text>КПЭ 1: время заполнения — от открытия карточки до первой отправки (журнал действий)</bpmn:text></bpmn:textAnnotation>
+    <bpmn:association id="a3_as" sourceRef="t_fixtime" targetRef="a3" />
+    <bpmn:textAnnotation id="a4"><bpmn:text>КПЭ 2: доля карточек, принятых с первого раза</bpmn:text></bpmn:textAnnotation>
+    <bpmn:association id="a4_as" sourceRef="g_ok" targetRef="a4" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_pilot">
+    <bpmndi:BPMNPlane id="Plane_pilot" bpmnElement="Collab_pilot">
+      <bpmndi:BPMNShape id="Pool_pilot_di" bpmnElement="Pool_pilot" isHorizontal="true">
+        <dc:Bounds x="120" y="60" width="2725" height="750" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_org_di" bpmnElement="Lane_org" isHorizontal="true"><dc:Bounds x="150" y="60" width="2695" height="290" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_sys_di" bpmnElement="Lane_sys" isHorizontal="true"><dc:Bounds x="150" y="350" width="2695" height="170" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_mod_di" bpmnElement="Lane_mod" isHorizontal="true"><dc:Bounds x="150" y="520" width="2695" height="290" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s_start_di" bpmnElement="s_start" bioc:stroke="#5b3a99" bioc:fill="#efe9f8" color:border-color="#5b3a99" color:background-color="#efe9f8"><dc:Bounds x="197" y="582" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="160" y="624" width="110" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_invite_di" bpmnElement="t_invite" bioc:stroke="#5b3a99" bioc:fill="#efe9f8" color:border-color="#5b3a99" color:background-color="#efe9f8"><dc:Bounds x="305" y="560" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_open_di" bpmnElement="t_open" bioc:stroke="#b35c00" bioc:fill="#fff1e0" color:border-color="#b35c00" color:background-color="#fff1e0"><dc:Bounds x="455" y="240" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_mode_di" bpmnElement="g_mode" isMarkerVisible="true" bioc:stroke="#b35c00" bioc:fill="#fff1e0" color:border-color="#b35c00" color:background-color="#fff1e0"><dc:Bounds x="640" y="255" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="610" y="311" width="110" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_upload_di" bpmnElement="t_upload" bioc:stroke="#b35c00" bioc:fill="#fff1e0" color:border-color="#b35c00" color:background-color="#fff1e0"><dc:Bounds x="755" y="240" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_parse_di" bpmnElement="t_parse" bioc:stroke="#1f4e79" bioc:fill="#e6f0fa" color:border-color="#1f4e79" color:background-color="#e6f0fa"><dc:Bounds x="905" y="395" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_llm_di" bpmnElement="t_llm" bioc:stroke="#1f4e79" bioc:fill="#e6f0fa" color:border-color="#1f4e79" color:background-color="#e6f0fa"><dc:Bounds x="1055" y="395" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_ext_di" bpmnElement="g_ext" isMarkerVisible="true" bioc:stroke="#1f4e79" bioc:fill="#e6f0fa" color:border-color="#1f4e79" color:background-color="#e6f0fa"><dc:Bounds x="1240" y="410" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="1294" y="452" width="90" height="30" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_manual_di" bpmnElement="t_manual" bioc:stroke="#b35c00" bioc:fill="#fff1e0" color:border-color="#b35c00" color:background-color="#fff1e0"><dc:Bounds x="1055" y="90" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_review_di" bpmnElement="t_review" bioc:stroke="#b35c00" bioc:fill="#fff1e0" color:border-color="#b35c00" color:background-color="#fff1e0"><dc:Bounds x="1355" y="240" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_join_di" bpmnElement="g_join" isMarkerVisible="true" bioc:stroke="#b35c00" bioc:fill="#fff1e0" color:border-color="#b35c00" color:background-color="#fff1e0"><dc:Bounds x="1540" y="255" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_submit_di" bpmnElement="t_submit" bioc:stroke="#b35c00" bioc:fill="#fff1e0" color:border-color="#b35c00" color:background-color="#fff1e0"><dc:Bounds x="1655" y="240" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_validate_di" bpmnElement="t_validate" bioc:stroke="#1f4e79" bioc:fill="#e6f0fa" color:border-color="#1f4e79" color:background-color="#e6f0fa"><dc:Bounds x="1805" y="395" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_valid_di" bpmnElement="g_valid" isMarkerVisible="true" bioc:stroke="#1f4e79" bioc:fill="#e6f0fa" color:border-color="#1f4e79" color:background-color="#e6f0fa"><dc:Bounds x="1990" y="410" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="1960" y="466" width="110" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_fix_di" bpmnElement="t_fix" bioc:stroke="#b35c00" bioc:fill="#fff1e0" color:border-color="#b35c00" color:background-color="#fff1e0"><dc:Bounds x="1955" y="90" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_fixtime_di" bpmnElement="t_fixtime" bioc:stroke="#1f4e79" bioc:fill="#e6f0fa" color:border-color="#1f4e79" color:background-color="#e6f0fa"><dc:Bounds x="2105" y="395" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_check_di" bpmnElement="t_check" bioc:stroke="#5b3a99" bioc:fill="#efe9f8" color:border-color="#5b3a99" color:background-color="#efe9f8"><dc:Bounds x="2255" y="560" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_ok_di" bpmnElement="g_ok" isMarkerVisible="true" bioc:stroke="#5b3a99" bioc:fill="#efe9f8" color:border-color="#5b3a99" color:background-color="#efe9f8"><dc:Bounds x="2440" y="575" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="2410" y="541" width="110" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_accept_di" bpmnElement="t_accept" bioc:stroke="#5b3a99" bioc:fill="#efe9f8" color:border-color="#5b3a99" color:background-color="#efe9f8"><dc:Bounds x="2555" y="560" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_accepted_di" bpmnElement="e_accepted" bioc:stroke="#5b3a99" bioc:fill="#efe9f8" color:border-color="#5b3a99" color:background-color="#efe9f8"><dc:Bounds x="2747" y="582" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="2710" y="624" width="110" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_return_di" bpmnElement="t_return" bioc:stroke="#5b3a99" bioc:fill="#efe9f8" color:border-color="#5b3a99" color:background-color="#efe9f8"><dc:Bounds x="2555" y="695" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s_window_di" bpmnElement="s_window" bioc:stroke="#5b3a99" bioc:fill="#efe9f8" color:border-color="#5b3a99" color:background-color="#efe9f8"><dc:Bounds x="197" y="717" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="160" y="759" width="110" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_export_di" bpmnElement="t_export" bioc:stroke="#5b3a99" bioc:fill="#efe9f8" color:border-color="#5b3a99" color:background-color="#efe9f8"><dc:Bounds x="305" y="695" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_kpi_di" bpmnElement="e_kpi" bioc:stroke="#5b3a99" bioc:fill="#efe9f8" color:border-color="#5b3a99" color:background-color="#efe9f8"><dc:Bounds x="497" y="717" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="460" y="759" width="110" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f1_di" bpmnElement="f1"><di:waypoint x="233" y="600" /><di:waypoint x="305" y="600" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f2_di" bpmnElement="f2"><di:waypoint x="365" y="560" /><di:waypoint x="365" y="280" /><di:waypoint x="455" y="280" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f3_di" bpmnElement="f3"><di:waypoint x="575" y="280" /><di:waypoint x="640" y="280" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f4_di" bpmnElement="f4"><di:waypoint x="690" y="280" /><di:waypoint x="755" y="280" /><bpmndi:BPMNLabel><dc:Bounds x="696" y="260" width="28" height="18" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f5_di" bpmnElement="f5"><di:waypoint x="665" y="255" /><di:waypoint x="665" y="130" /><di:waypoint x="1055" y="130" /><bpmndi:BPMNLabel><dc:Bounds x="671" y="182" width="49" height="18" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f6_di" bpmnElement="f6"><di:waypoint x="875" y="280" /><di:waypoint x="965" y="280" /><di:waypoint x="965" y="395" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f7_di" bpmnElement="f7"><di:waypoint x="1025" y="435" /><di:waypoint x="1055" y="435" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f8_di" bpmnElement="f8"><di:waypoint x="1175" y="435" /><di:waypoint x="1240" y="435" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f9_di" bpmnElement="f9"><di:waypoint x="1265" y="410" /><di:waypoint x="1265" y="280" /><di:waypoint x="1355" y="280" /><bpmndi:BPMNLabel><dc:Bounds x="1271" y="335" width="28" height="18" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f10_di" bpmnElement="f10"><di:waypoint x="1265" y="460" /><di:waypoint x="1265" y="502" /><di:waypoint x="815" y="502" /><di:waypoint x="815" y="320" /><bpmndi:BPMNLabel><dc:Bounds x="975" y="482" width="119" height="18" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f11_di" bpmnElement="f11"><di:waypoint x="1475" y="280" /><di:waypoint x="1540" y="280" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f12_di" bpmnElement="f12"><di:waypoint x="1175" y="130" /><di:waypoint x="1565" y="130" /><di:waypoint x="1565" y="255" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f13_di" bpmnElement="f13"><di:waypoint x="1590" y="280" /><di:waypoint x="1655" y="280" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f14_di" bpmnElement="f14"><di:waypoint x="1775" y="280" /><di:waypoint x="1865" y="280" /><di:waypoint x="1865" y="395" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f15_di" bpmnElement="f15"><di:waypoint x="1925" y="435" /><di:waypoint x="1990" y="435" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f16_di" bpmnElement="f16"><di:waypoint x="2015" y="410" /><di:waypoint x="2015" y="170" /><bpmndi:BPMNLabel><dc:Bounds x="2021" y="280" width="28" height="18" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f17_di" bpmnElement="f17"><di:waypoint x="1955" y="130" /><di:waypoint x="1715" y="130" /><di:waypoint x="1715" y="240" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f18_di" bpmnElement="f18"><di:waypoint x="2040" y="435" /><di:waypoint x="2105" y="435" /><bpmndi:BPMNLabel><dc:Bounds x="2046" y="415" width="28" height="18" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f19_di" bpmnElement="f19"><di:waypoint x="2165" y="475" /><di:waypoint x="2165" y="600" /><di:waypoint x="2255" y="600" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f20_di" bpmnElement="f20"><di:waypoint x="2375" y="600" /><di:waypoint x="2440" y="600" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f21_di" bpmnElement="f21"><di:waypoint x="2490" y="600" /><di:waypoint x="2555" y="600" /><bpmndi:BPMNLabel><dc:Bounds x="2496" y="580" width="28" height="18" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f22_di" bpmnElement="f22"><di:waypoint x="2675" y="600" /><di:waypoint x="2747" y="600" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f23_di" bpmnElement="f23"><di:waypoint x="2465" y="625" /><di:waypoint x="2465" y="735" /><di:waypoint x="2555" y="735" /><bpmndi:BPMNLabel><dc:Bounds x="2471" y="670" width="28" height="18" /></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f24_di" bpmnElement="f24"><di:waypoint x="2615" y="775" /><di:waypoint x="2615" y="795" /><di:waypoint x="2060" y="795" /><di:waypoint x="2060" y="170" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f25_di" bpmnElement="f25"><di:waypoint x="233" y="735" /><di:waypoint x="305" y="735" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f26_di" bpmnElement="f26"><di:waypoint x="425" y="735" /><di:waypoint x="497" y="735" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="a1_di" bpmnElement="a1"><dc:Bounds x="475" y="560" width="300" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="a1_as_di" bpmnElement="a1_as"><di:waypoint x="425" y="600" /><di:waypoint x="475" y="600" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="a2_di" bpmnElement="a2"><dc:Bounds x="1405" y="395" width="240" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="a2_as_di" bpmnElement="a2_as"><di:waypoint x="1415" y="320" /><di:waypoint x="1415" y="395" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="a3_di" bpmnElement="a3"><dc:Bounds x="2265" y="395" width="300" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="a3_as_di" bpmnElement="a3_as"><di:waypoint x="2225" y="435" /><di:waypoint x="2265" y="435" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="a4_di" bpmnElement="a4"><dc:Bounds x="2260" y="690" width="170" height="55" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="a4_as_di" bpmnElement="a4_as"><di:waypoint x="2440" y="625" /><di:waypoint x="2430" y="690" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,8 @@
+**/node_modules
+**/__pycache__
+var
+data
+out
+backend/static
+.env
+*.zip
