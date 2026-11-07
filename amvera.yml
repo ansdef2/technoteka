@@ -1,0 +1,13 @@
+# Amvera Cloud: сборка из Dockerfile, база и файлы — в постоянном хранилище /data (DATA_DIR в Dockerfile).
+# Переменные (PUBLIC_URL, LLM_PROVIDER …) и секреты (ADMIN_PASSWORD, ключи) — в панели проекта, см. README.
+meta:
+  environment: docker
+  toolchain:
+    name: docker
+    version: latest
+build:
+  dockerfile: Dockerfile
+  skip: false
+run:
+  persistenceMount: /data
+  containerPort: 8000

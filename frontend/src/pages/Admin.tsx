@@ -1,9 +1,9 @@
 // Модератор: вход, список карточек, приглашения, выгрузка для КПЭ.
-import { Button, Card, Form, Input, Segmented, Space, Table, Tag, Typography } from 'antd'
-import { DownloadOutlined, LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
+import { App, Button, Card, Form, Input, Segmented, Select, Space, Table, Tabs, Tag, Typography } from 'antd'
+import { DownloadOutlined, LogoutOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, ApiError, hasAdminAuth, MODE, setAdminAuth, STATUS, type CardShort, type Mode, type Status } from '../api'
+import { api, ApiError, hasAdminAuth, MODE, setAdminAuth, STATUS, type CardShort, type Invite, type Mode, type Status } from '../api'
 
 const { Title, Text } = Typography
 
@@ -52,8 +52,64 @@ export default function Admin() {
           <Button icon={<LogoutOutlined />} onClick={() => { setAdminAuth('', null); setOk(false) }}>Выйти</Button>
         </Space>
       </div>
-      <CardsTab />
+      <Tabs items={[
+        { key: 'cards', label: 'Карточки', children: <CardsTab /> },
+        { key: 'invites', label: 'Приглашения', children: <InvitesTab /> },
+      ]} />
     </div>
+  )
+}
+
+const PLANS = [
+  { value: 'ai,manual', label: 'ИИ → вручную' },
+  { value: 'manual,ai', label: 'Вручную → ИИ' },
+  { value: 'ai', label: 'Только ИИ' },
+  { value: 'manual', label: 'Только вручную' },
+]
+
+function InvitesTab() {
+  const { message } = App.useApp()
+  const [form] = Form.useForm()
+  const [data, setData] = useState<Invite[]>([])
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const load = useCallback(() => {
+    setLoading(true)
+    api.admin.invites().then((d) => {
+      setData(d)
+      // порядок карточек чередуем для контрбалансировки: новое приглашение — наоборот к последнему
+      form.setFieldValue('plan', d[0]?.plan[0] === 'ai' ? 'manual,ai' : 'ai,manual')
+    }).finally(() => setLoading(false))
+  }, [form])
+  useEffect(load, [load])
+  return (
+    <>
+      <Form form={form} layout="inline" className="mb" onFinish={async ({ org_label, plan }) => {
+        setBusy(true)
+        try {
+          const { url } = await api.admin.createInvite(org_label, plan.split(',') as Mode[])
+          const copied = await navigator.clipboard?.writeText(url).then(() => true, () => false)
+          message.success(copied ? 'Приглашение создано, ссылка скопирована' : 'Приглашение создано')
+          form.resetFields(['org_label'])
+          load()
+        } catch (e) { message.error((e as Error).message) } finally { setBusy(false) }
+      }}>
+        <Form.Item name="org_label" rules={[{ required: true, whitespace: true, message: 'Название организации' }]}>
+          <Input placeholder="Организация" style={{ width: 260 }} />
+        </Form.Item>
+        <Form.Item name="plan" initialValue="ai,manual"><Select options={PLANS} style={{ width: 170 }} /></Form.Item>
+        <Button type="primary" htmlType="submit" icon={<PlusOutlined />} loading={busy}>Создать приглашение</Button>
+      </Form>
+      <Table rowKey="id" loading={loading} dataSource={data} size="middle" pagination={{ pageSize: 20 }}
+        locale={{ emptyText: 'Приглашений пока нет' }}
+        columns={[
+          { title: 'Организация', dataIndex: 'org_label' },
+          { title: 'Порядок карточек', dataIndex: 'plan', width: 200, render: (p: Mode[]) => p.map((m) => MODE[m]).join(' → ') },
+          { title: 'Карточек', dataIndex: 'cards', width: 100 },
+          { title: 'Создано', dataIndex: 'created_at', width: 150, render: (d: string) => new Date(d).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) },
+          { title: 'Ссылка', dataIndex: 'url', render: (u: string) => <Text copyable style={{ wordBreak: 'break-all' }}>{u}</Text> },
+        ]} />
+    </>
   )
 }
 

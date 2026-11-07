@@ -9,7 +9,7 @@ RUN npx tsc --noEmit && npx vite build --outDir /front/dist
 # 2) бэкенд + ML-модуль + собранный фронт
 FROM python:3.12-slim
 WORKDIR /app
-ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 DATA_DIR=/data STATIC_DIR=/app/static
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 DATA_DIR=/data STATIC_DIR=/app/static LLM_PROVIDER=demo
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY schema/ schema/
@@ -19,7 +19,10 @@ COPY ml/ ml/
 COPY backend/*.py backend/schema.sql backend/
 COPY --from=front /front/dist static/
 RUN useradd -m app && mkdir -p /data && chown app /data
-USER app
+# Облака (Amvera, Render) и docker с папкой хоста подключают диск данных от root: стартуем от root,
+# отдаём DATA_DIR пользователю app и запускаем приложение уже от него (если платформа сама задала
+# пользователя — запускаем как есть).
+ENTRYPOINT ["sh", "-c", "if [ \"$(id -u)\" = 0 ]; then mkdir -p \"$DATA_DIR\" && chown -R app \"$DATA_DIR\" || true; exec setpriv --reuid=app --regid=app --init-groups \"$@\"; fi; exec \"$@\"", "--"]
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/health')"
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]

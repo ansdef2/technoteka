@@ -13,8 +13,8 @@ python -m backend.cli invite "НИИ Пример" ai,manual     # → ссыл�
 ```
 
 * Организация: открыть ссылку-приглашение → «Начать» → загрузить файлы из `demo/agrosensor/` → «Заполнить автоматически».
-* Модератор: http://localhost:8000/admin (admin / пароль из ADMIN_PASSWORD) — карточки, чек-лист, выгрузка в Excel.
-* Приглашения — только из консоли: `python -m backend.cli invite …`, список — `python -m backend.cli invites`.
+* Модератор: http://localhost:8000/admin (admin / пароль из ADMIN_PASSWORD) — карточки, приглашения, чек-лист, выгрузка в Excel.
+* Приглашения — в админке (вкладка «Приглашения») или из консоли: `python -m backend.cli invite …`, список — `python -m backend.cli invites`.
 * API с документацией: http://localhost:8000/api/docs
 
 Разработка фронта с горячей перезагрузкой: бэкенд как выше + `cd frontend && npm run dev` → http://localhost:5173.
@@ -27,15 +27,30 @@ python -m backend.cli invite "НИИ Пример" ai,manual     # → ссыл�
 | `yandex` / `gigachat` | настоящее извлечение (ключи — ниже, раздел B02) |
 | `mock` | заведомо ложный ответ («ООО «Выдумка»») — для тестов проверки цитат |
 
-**На ВМ** (docker compose + Caddy с автоматическим HTTPS). GitHub Pages и другой статический хостинг
-не подходят: нужен работающий бэкенд (FastAPI + SQLite), фронт без него не работает.
+GitHub Pages и другой статический хостинг не подходят: нужен работающий бэкенд (FastAPI + SQLite),
+фронт без него не работает. Два варианта — облако Amvera или своя ВМ.
+
+**В облаке Amvera** (сборка из `Dockerfile` по `amvera.yml`, домен с HTTPS выдаёт Amvera):
+
+1. Создать проект в Amvera и отправить в него код — через git (адрес репозитория — в настройках проекта):
+   ```bash
+   git remote add amvera https://git.amvera.ru/<логин>/<проект>
+   git push amvera HEAD:master          # Amvera собирает ветку master
+   ```
+2. В настройках проекта задать переменные: `PUBLIC_URL=https://<домен проекта>` (из него строятся
+   ссылки-приглашения), а пароль `ADMIN_PASSWORD` — секретом: без него приложение не запустится.
+   В образе уже заданы `LLM_PROVIDER=demo` (для настоящего извлечения — `yandex` / `gigachat` и ключи
+   секретами) и `DATA_DIR=/data`, совпадающий с постоянным хранилищем из `amvera.yml`.
+3. Пересобрать проект, открыть `https://<домен проекта>/admin` → «Приглашения» → создать ссылку для организации.
+
+**На ВМ** (docker compose + Caddy с автоматическим HTTPS).
 
 До запуска: A-запись домена указывает на IP ВМ, порты 80 и 443 открыты (Caddy получает сертификат сам).
 
 ```bash
 cp .env.example .env      # DOMAIN, PUBLIC_URL, ADMIN_PASSWORD, LLM_PROVIDER и ключи
 docker compose up -d --build
-docker compose exec app python -m backend.cli invite "НИИ Пример" ai,manual
+docker compose exec -u app app python -m backend.cli invite "НИИ Пример" ai,manual   # или в админке
 ```
 
 Данные (база SQLite + загруженные файлы) — в томе Docker `app_data`. Бэкап:
@@ -47,7 +62,8 @@ docker compose exec app python -m backend.cli invite "НИИ Пример" ai,ma
 
 ### Как устроен сценарий пилота
 
-1. Команда создаёт приглашение из консоли с порядком карточек (`ai,manual` или `manual,ai` — чередовать для контрбалансировки).
+1. Команда создаёт приглашение в админке или из консоли с порядком карточек (`ai,manual` или `manual,ai` —
+   чередовать для контрбалансировки; админка сама предлагает порядок, обратный последнему приглашению).
 2. Организация по ссылке создаёт карточки в этом порядке. Карточка с ИИ: загрузка → извлечение в фоне (статус
    `processing`, фронт опрашивает раз в 2 с) → форма с метками «ИИ», цитатами и предупреждением «проверьте», если
    цитата не найдена в тексте. Ручная карточка — та же форма без автозаполнения.
@@ -74,6 +90,7 @@ ml/heuristic.py                   демо-извлечение правилам
 demo/make_demo.py                 демо-комплект «Агросенсор» (вымышленный): PDF-презентация + DOCX
 tests/                            test_api.py (pytest), e2e_browser.py (Playwright)
 Dockerfile, docker-compose.yml, Caddyfile, .env.example    развёртывание на ВМ
+amvera.yml                        развёртывание в облаке Amvera
 c02/sources.csv, download.py C02  список 30 комплектов открытых материалов и их загрузка в data/raw
 c04/gold.py                  C04  бланк эталонной разметки (Excel) ⇄ JSON, с проверкой цитат
 c04/split.py                 C04  манифест комплектов и разбиение dev/test (стратифицированное, seed)

@@ -414,12 +414,13 @@ def moderate_card(card_id: int, body: dict, user: str = Depends(admin)):
 
 
 def list_invites() -> list[dict]:
-    """Для backend.cli: приглашения со ссылками (в API не выносим — создаёт и смотрит команда из консоли)."""
+    """Приглашения со ссылками — для админки и backend.cli."""
     with db.connect() as c:
         invs = rows(c, "SELECT i.*, (SELECT COUNT(*) FROM cards WHERE invite_id = i.id) AS cards "
                        "FROM invites i ORDER BY id DESC")
     return [{"id": i["id"], "org_label": i["org_label"], "plan": jload(i["plan"], []), "cards": i["cards"],
-             "url": f"{PUBLIC_URL}/?t={i['token']}", "created_at": i["created_at"]} for i in invs]
+             "url": f"{PUBLIC_URL}/?t={i['token']}",
+             "created_at": i["created_at"].replace(" ", "T") + "Z"} for i in invs]
 
 
 def make_invite(org_label: str, plan: list[str]) -> str:
@@ -429,6 +430,21 @@ def make_invite(org_label: str, plan: list[str]) -> str:
     with db.connect() as c:
         c.execute("INSERT INTO invites (token, org_label, plan) VALUES (?, ?, ?)", (token, org_label.strip(), jdump(plan)))
     return f"{PUBLIC_URL}/?t={token}"
+
+
+@app.get("/api/admin/invites")
+def admin_list_invites(_: str = Depends(admin)):
+    return list_invites()
+
+
+@app.post("/api/admin/invites")
+def admin_create_invite(body: dict, _: str = Depends(admin)):
+    plan = body.get("plan")
+    try:
+        url = make_invite(str(body.get("org_label") or ""), plan if isinstance(plan, list) else [])
+    except ValueError as e:
+        err(422, str(e))
+    return {"url": url}
 
 
 def _cell(v):

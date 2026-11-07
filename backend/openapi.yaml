@@ -6,7 +6,8 @@ info:
     Контракт фронтенд ↔ бэкенд (B03). Все ответы — JSON, кодировка UTF-8.
     Авторизация пользователя: приглашение организации (токен из ссылки) → cookie сессии.
     Авторизация модератора: HTTP Basic на /api/admin/*.
-    Приглашения создаются из консоли: python -m backend.cli invite "Организация" ai,manual
+    Приглашения создаёт модератор: в админке (/api/admin/invites) или из консоли:
+    python -m backend.cli invite "Организация" ai,manual
 
     Статусы карточки: draft → processing → ready → submitted → accepted | returned.
     В режиме manual шага processing/ready нет: draft → submitted.
@@ -310,6 +311,49 @@ paths:
           content:
             application/octet-stream:
               schema: {type: string, format: binary}
+  /admin/invites:
+    get:
+      tags: [Модератор]
+      summary: Приглашения со ссылками, новые сверху
+      operationId: adminListInvites
+      security: [{basic: []}]
+      responses:
+        "200":
+          description: Список
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Invite"}
+    post:
+      tags: [Модератор]
+      summary: Создать приглашение организации
+      operationId: adminCreateInvite
+      security: [{basic: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [org_label, plan]
+              properties:
+                org_label: {type: string}
+                plan:
+                  type: array
+                  minItems: 1
+                  items: {$ref: "#/components/schemas/Mode"}
+                  description: порядок карточек; ai,manual и manual,ai чередовать для контрбалансировки
+      responses:
+        "200":
+          description: Приглашение создано
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: {type: string, description: ссылка-приглашение для организации}
+        "422": {description: Пустое название или неизвестный режим в plan}
   /admin/export.xlsx:
     get:
       tags: [Модератор]
@@ -443,3 +487,14 @@ components:
         verdict: {type: string, enum: [accepted, returned]}
         comment: {type: [string, "null"]}
         created_at: {type: string, format: date-time, readOnly: true}
+    Invite:
+      type: object
+      properties:
+        id: {type: integer}
+        org_label: {type: string}
+        plan:
+          type: array
+          items: {$ref: "#/components/schemas/Mode"}
+        cards: {type: integer, description: сколько карточек создано по приглашению}
+        url: {type: string}
+        created_at: {type: string, format: date-time}

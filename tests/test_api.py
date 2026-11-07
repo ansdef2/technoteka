@@ -160,6 +160,19 @@ def test_hallucination_is_flagged(client, monkeypatch):
     assert card["ai"]["card"]["product_name"]["verified"] is True
 
 
+def test_admin_invites(client):
+    body = {"org_label": "НИИ Админки", "plan": ["manual", "ai"]}
+    assert client.post("/api/admin/invites", json=body).status_code == 401
+    assert client.post("/api/admin/invites", auth=ADMIN, json={"org_label": " ", "plan": ["ai"]}).status_code == 422
+    assert client.post("/api/admin/invites", auth=ADMIN, json={"org_label": "X", "plan": ["auto"]}).status_code == 422
+    url = client.post("/api/admin/invites", auth=ADMIN, json=body).json()["url"]
+    inv = client.get("/api/admin/invites", auth=ADMIN).json()[0]
+    assert inv["url"] == url and inv["org_label"] == "НИИ Админки" and inv["plan"] == ["manual", "ai"]
+    assert inv["cards"] == 0 and inv["created_at"].endswith("Z")
+    s = client.post("/api/session", json={"token": url.split("t=")[1]}).json()
+    assert s["org_label"] == "НИИ Админки" and s["plan"] == ["manual", "ai"]
+
+
 def test_static_spa_fallback(client):
     assert client.get("/api/health").json()["ok"]
     assert client.get("/api/nope").status_code == 404

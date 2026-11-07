@@ -47,6 +47,7 @@ export interface AdminCard extends Card {
   moderation: Moderation[]
   minutes: number | null
 }
+export interface Invite { id: number; org_label: string; plan: Mode[]; cards: number; url: string; created_at: string }
 export interface Session { org_label: string; plan: Mode[]; cards: CardShort[] }
 export type Problems = Record<string, string>
 
@@ -105,6 +106,9 @@ export const api = {
     cards: (status?: Status) => req<CardShort[]>('GET', '/admin/cards' + (status ? `?status=${status}` : ''), undefined, { admin: true }),
     card: (id: number) => req<AdminCard>('GET', `/admin/cards/${id}`, undefined, { admin: true }),
     moderate: (id: number, m: Moderation) => req<CardShort>('POST', `/admin/cards/${id}/moderation`, m, { admin: true }),
+    invites: () => req<Invite[]>('GET', '/admin/invites', undefined, { admin: true }),
+    createInvite: (org_label: string, plan: Mode[]) =>
+      req<{ url: string }>('POST', '/admin/invites', { org_label, plan }, { admin: true }),
     download: async (url: string, filename: string) => {
       const r = await req<Response>('GET', url, undefined, { admin: true, raw: true })
       const blob = await r.blob()
