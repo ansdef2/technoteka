@@ -4,7 +4,9 @@ services:
     build: .
     env_file: .env
     volumes:
-      - ./var:/data            # база SQLite и загруженные файлы — бэкапить эту папку
+      # база SQLite и загруженные файлы. Именованный том, а не ./var: папку ./var Docker создал бы
+      # от root, и пользователь app в контейнере не смог бы в неё писать. Бэкап — см. README.
+      - app_data:/data
     restart: unless-stopped
     expose: ["8000"]
 
@@ -20,4 +22,5 @@ services:
     restart: unless-stopped
 
 volumes:
+  app_data:
   caddy_data:

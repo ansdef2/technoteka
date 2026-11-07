@@ -52,6 +52,8 @@ async def lifespan(_app):
 
 
 def _startup():
+    if not ADMIN_PASSWORD:
+        raise RuntimeError("ADMIN_PASSWORD пустой — задайте пароль модератора в .env")
     db.init()
     if ADMIN_PASSWORD == "admin":
         log.warning("ADMIN_PASSWORD не задан — используется admin/admin. Только для локального запуска!")

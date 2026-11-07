@@ -27,7 +27,10 @@ python -m backend.cli invite "НИИ Пример" ai,manual     # → ссыл�
 | `yandex` / `gigachat` | настоящее извлечение (ключи — ниже, раздел B02) |
 | `mock` | заведомо ложный ответ («ООО «Выдумка»») — для тестов проверки цитат |
 
-**На ВМ** (docker compose + Caddy с автоматическим HTTPS):
+**На ВМ** (docker compose + Caddy с автоматическим HTTPS). GitHub Pages и другой статический хостинг
+не подходят: нужен работающий бэкенд (FastAPI + SQLite), фронт без него не работает.
+
+До запуска: A-запись домена указывает на IP ВМ, порты 80 и 443 открыты (Caddy получает сертификат сам).
 
 ```bash
 cp .env.example .env      # DOMAIN, PUBLIC_URL, ADMIN_PASSWORD, LLM_PROVIDER и ключи
@@ -35,7 +38,8 @@ docker compose up -d --build
 docker compose exec app python -m backend.cli invite "НИИ Пример" ai,manual
 ```
 
-Данные — в `./var` (база SQLite + загруженные файлы): эту папку и бэкапить. Если Docker Hub с ВМ
+Данные (база SQLite + загруженные файлы) — в томе Docker `app_data`. Бэкап:
+`docker compose cp app:/data ./backup-$(date +%F)`. Если Docker Hub с ВМ
 недоступен, укажите зеркало реестра в `/etc/docker/daemon.json` (`"registry-mirrors": [...]`).
 
 **Тесты:** `pytest -q tests` — сквозной сценарий через API; `python tests/e2e_browser.py <ссылка> --admin admin:<пароль>` —
