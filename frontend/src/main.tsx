@@ -45,7 +45,12 @@ function Shell() {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ConfigProvider locale={ruRU} theme={{
-      token: { colorPrimary: '#1f4e79', borderRadius: 8, fontFamily: "'Golos Text', 'Segoe UI', Roboto, Arial, sans-serif" },
+      token: {
+        colorPrimary: '#1f4e79', borderRadius: 8, fontFamily: "'Golos Text', 'Segoe UI', Roboto, Arial, sans-serif",
+        // контраст текста ≥4,5:1 на наших фонах (брендбук): серые и зелёные Ant Design по умолчанию бледнее
+        colorTextDescription: '#5f6b7b', colorTextTertiary: '#5f6b7b', colorTextPlaceholder: '#6b7686',
+        colorLink: '#1f4e79', colorLinkHover: '#2d6aa3', colorSuccess: '#2b7d0a',
+      },
     }}>
       <AntApp>
         <BrowserRouter>

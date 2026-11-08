@@ -104,10 +104,10 @@ def ratio(a, b):
     return (la + 0.05) / (lb + 0.05)
 
 
-pairs = [("ink", INK, "bg", "#f4f6f9"), ("ink", INK, "surface", WHITE), ("muted", "#6b7686", "bg", "#f4f6f9"),
-         ("muted", "#6b7686", "surface", WHITE), ("white", WHITE, "brand", BRAND), ("brand", BRAND, "surface", WHITE),
+pairs = [("ink", INK, "bg", "#f4f6f9"), ("ink", INK, "surface", WHITE), ("muted", "#5f6b7b", "bg", "#f4f6f9"),
+         ("muted", "#5f6b7b", "surface", WHITE), ("muted", "#5f6b7b", "ai-tint", "#e8f1fb"), ("white", WHITE, "brand", BRAND), ("brand", BRAND, "surface", WHITE),
          ("brand", BRAND, "ai-tint", "#e8f1fb"), ("quote-ink", "#44546a", "surface", WHITE),
-         ("warn-ink", "#ad6800", "warn-tint", "#fff7e6"), ("danger", "#cf1322", "danger-tint", "#fff1f0"),
+         ("warn-ink", "#9a5c00", "warn-tint", "#fff7e6"), ("danger", "#cf1322", "danger-tint", "#fff1f0"),
          ("danger", "#cf1322", "surface", WHITE), ("amber", AMBER, "brand", BRAND), ("amber", AMBER, "surface", WHITE),
          ("sky", SKY, "brand", BRAND), ("ink", INK, "amber", AMBER)]
 for a, ca, b, cb in pairs:

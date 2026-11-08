@@ -2,14 +2,16 @@
   --brand: #1f4e79;
   --bg: #f4f6f9;
   --line: #e3e8ef;
-  --muted: #6b7686;
+  --ink: #1d2733;
+  --muted: #5f6b7b;  /* ≥4,75:1 на всех фонах, включая голубой ai-tint (брендбук) */
   --ai: #e8f1fb;
   --warn: #fff7e6;
+  --warn-ink: #9a5c00;
   --amber: #f4b223;  /* точка-маркер из логотипа: только знаки, не текст (на белом 1,9:1) */
   --font-display: 'Unbounded', 'Arial Black', sans-serif;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: #1d2733; }
+body { margin: 0; background: var(--bg); color: var(--ink); }
 
 .top {
   position: sticky; top: 0; z-index: 20;
@@ -64,15 +66,20 @@ body { margin: 0; background: var(--bg); color: #1d2733; }
 .field-problem { color: #cf1322; font-size: 13px; margin-top: 4px; }
 .field-note { color: var(--muted); font-size: 12.5px; margin-top: 6px; font-style: italic; }
 .quote { margin-top: 6px; font-size: 12.5px; color: #44546a; border-left: 2px solid #9dbbe0; padding-left: 8px; }
-.quote-bad { color: #ad6800; border-left-color: #ffc069; background: var(--warn); padding: 4px 8px; }
+.quote-bad { color: var(--warn-ink); border-left-color: #ffc069; background: var(--warn); padding: 4px 8px; }
 .quote-label { color: var(--muted); }
-.quote-bad .quote-label { color: #ad6800; }
+.quote-bad .quote-label { color: var(--warn-ink); }
 .checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
 .kv { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .kv-row { display: grid; grid-template-columns: 1fr 1fr 32px; gap: 6px; width: 100%; }
 .ant-input-disabled, .ant-select-disabled .ant-select-selector, .ant-input-number-disabled {
-  color: #1d2733 !important; background: #fbfcfd !important; cursor: default !important;
+  color: var(--ink) !important; background: #fbfcfd !important; cursor: default !important;
 }
+/* только чтение (модерация): отмеченное читается как значение, неотмеченное — серым, но читаемо */
+.ant-checkbox-wrapper-disabled, .ant-checkbox-disabled + span { cursor: default !important; color: var(--muted) !important; }
+.ant-checkbox-wrapper-checked .ant-checkbox-disabled + span { color: var(--ink) !important; }
+.ant-checkbox-disabled.ant-checkbox-checked .ant-checkbox-inner { background: var(--brand) !important; border-color: var(--brand) !important; }
+.ant-checkbox-disabled.ant-checkbox-checked .ant-checkbox-inner::after { border-color: #fff !important; }
 .ta { padding-bottom: 18px; } /* место под счётчик символов, чтобы не наезжал на цитату */
 .warn { margin: 4px 0 0; padding-left: 18px; }
 
