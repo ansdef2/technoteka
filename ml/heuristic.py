@@ -86,38 +86,68 @@ def _stem_hit(text_l: str, kw: str) -> int:
     return len(re.findall(pat, text_l))
 
 
+# шапки и грифы документа — не название продукта
+BOILER_RE = re.compile(r"\bдокумент\b|департамент|конфиденциальн|служебного пользования|коммерческ\w* тайн"
+                       r"|^\s*(утверждаю|согласовано|проект|черновик|приложение|страница)\b", re.I)
+# конец предложения: точка и т. п., дальше заглавная; «г. Казань», «ул. Ленина» — не конец
+SENT_END = re.compile(r"(?<!\b[а-яёa-z])(?<!\b[а-яёa-z]{2})[.!?…](?=\s+[«\"(]?[А-ЯЁA-Z0-9])")
+
+
+def _continues(prev: str, nxt: str) -> bool:
+    """Строка PDF перенесена по ширине страницы: предыдущая не кончается точкой, следующая — со строчной."""
+    p, n = prev.rstrip(), nxt.lstrip()
+    return bool(p and n) and not p.startswith(("---", "===")) and p[-1] not in ".!?:;" and n[0].islower()
+
+
+def _logical_lines(text: str) -> list[str]:
+    """Строки текста с обратно склеенными переносами — абзац или пункт целиком."""
+    out: list[str] = []
+    for ln in text.splitlines():
+        if out and _continues(out[-1], ln):
+            out[-1] = out[-1].rstrip() + " " + ln.strip()
+        else:
+            out.append(ln.strip())
+    return out
+
+
 def _line_with(text: str, needle: str) -> str:
-    i = text.lower().find(needle.lower())
-    if i < 0:
+    """Предложение с needle целиком (цитата не обрывается на переносе строки)."""
+    nl = needle.lower()
+    line = next((ln for ln in _logical_lines(text) if nl in ln.lower()), None)
+    if line is None:
         return needle
-    a = text.rfind("\n", 0, i) + 1
-    b = text.find("\n", i)
-    return text[a: b if b > 0 else None].strip()[:300]
+    pos = line.lower().find(nl)
+    starts = [0] + [m.end() for m in SENT_END.finditer(line) if m.end() <= pos]
+    ends = [m.end() for m in SENT_END.finditer(line) if m.end() > pos]
+    return line[starts[-1]: ends[0] if ends else None].strip()[:300]
 
 
 def _sentences(text: str) -> list[str]:
-    paras = [p.strip() for p in re.split(r"\n+", text) if len(p.strip()) > 80 and not p.startswith(("---", "==="))]
-    return paras
+    return [p for p in _logical_lines(text) if len(p) > 80 and not p.startswith(("---", "==="))]
 
 
 def extract(text: str) -> dict:
     out = {k: {"value": None, "quote": None} for k in _P}
     low = text.lower()
 
-    # наименование: заголовок страницы или первая содержательная строка
-    title = None
+    # наименование: заголовок страницы или первая содержательная строка (не шапка документа) —
+    # обычно это первая строка первой страницы/слайда
+    title, nxt = None, ""
     m = re.search(r"Заголовок страницы:\s*(.+)", text)
     if m:
         title = re.split(r"\s[|—–-]\s|\s\|\s", m.group(1))[0].strip()
-    if not title:  # первая строка первой страницы/слайда — обычно название продукта
-        first = re.search(r"--- (?:стр\.|слайд) 1 ---\n\s*(.{5,150})", text)
-        title = first.group(1).strip() if first else None
     if not title:
-        title = next((ln.strip() for ln in text.splitlines()
-                      if 5 <= len(ln.strip()) <= 150 and not ln.startswith(("---", "===", "Заголовок"))), None)
+        lines = [ln for ln in _logical_lines(text) if ln and not ln.startswith(("---", "===", "Заголовок"))]
+        i = next((i for i, ln in enumerate(lines) if 5 <= len(ln) <= 150 and not BOILER_RE.search(ln)), None)
+        if i is not None:
+            title, nxt = lines[i], (lines[i + 1] if i + 1 < len(lines) else "")
+            if re.fullmatch(r"«[^»]{2,40}»", nxt):  # «Система контроля…» + строкой ниже «КомпоСкан-УЗК»
+                title = f"{title} {nxt}"
     if title:
         out["product_name"] = {"value": title[:300], "quote": title[:300]}
-        short = re.split(r"[:—–(]", title)[0].strip()  # «АгроСкан-М: беспроводная…» → «АгроСкан-М»
+        named = re.search(r"«([^»]{2,40})»", title)
+        # «КомпоСкан-УЗК» из кавычек; иначе «АгроСкан-М: беспроводная…» → «АгроСкан-М»
+        short = named.group(1) if named else re.split(r"[:—–(]", title)[0].strip()
         out["product_short_name"] = {"value": short[:60].rstrip(" ,.;:"), "quote": title[:300]}
 
     if m := ORG_RE.search(text):
