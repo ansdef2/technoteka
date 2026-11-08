@@ -90,6 +90,9 @@ def _stem_hit(text_l: str, kw: str) -> int:
 BOILER_RE = re.compile(r"\bдокумент\b|департамент|конфиденциальн|служебного пользования|коммерческ\w* тайн"
                        r"|^\s*(утверждаю|согласовано|проект|черновик|приложение|страница|шифр|экз\.|пояснительн"
                        r"|протокол|отч[её]т)\b", re.I)
+# заголовок-тип документа («Технические характеристики системы X») — не название, если есть строка лучше
+DOC_TYPE_RE = re.compile(r"^\s*(техническ\w* (характеристик|описани|задани)\w*|описание|паспорт|руководство|инструкция"
+                         r"|спецификация|презентация)\b", re.I)
 # строка с явной подписью — название продукта после двоеточия
 TITLE_LABEL_RE = re.compile(r"^(?:объект разработки|наименование (?:продукта|разработки|изделия)|продукт|изделие)\s*:\s*(.{5,})",
                             re.I)
@@ -143,10 +146,19 @@ def extract(text: str) -> dict:
     if not title:
         lines = [ln for ln in _logical_lines(text) if ln and not ln.startswith(("---", "===", "Заголовок"))]
         labeled = next((m.group(1).strip() for ln in lines if (m := TITLE_LABEL_RE.match(ln))), None)
-        i = next((i for i, ln in enumerate(lines) if 5 <= len(ln) <= 150 and not BOILER_RE.search(ln)), None)
+        # первая содержательная строка КАЖДОГО файла: порядок загрузки файлов случаен, а техописание
+        # начинается с «Технические характеристики…» — берём первую, что не заголовок-тип документа
+        firsts = []
+        for chunk in re.split(r"^=== Файл: .* ===$", text, flags=re.M):
+            cl = [ln for ln in _logical_lines(chunk) if ln and not ln.startswith(("---", "===", "Заголовок"))]
+            j = next((j for j, ln in enumerate(cl) if 5 <= len(ln) <= 150 and not BOILER_RE.search(ln)), None)
+            if j is not None:
+                firsts.append((cl, j))
+        pick = next((f for f in firsts if not DOC_TYPE_RE.match(f[0][f[1]])), firsts[0] if firsts else None)
         if labeled:
             title = labeled
-        elif i is not None:
+        elif pick:
+            lines, i = pick
             title, nxt = lines[i], (lines[i + 1] if i + 1 < len(lines) else "")
             if re.fullmatch(r"«[^»]{2,40}»", nxt):  # «Система контроля…» + строкой ниже «КомпоСкан-УЗК»
                 title = f"{title} {nxt}"

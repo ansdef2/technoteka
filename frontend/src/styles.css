@@ -7,6 +7,7 @@
   --ai: #e8f1fb;
   --warn: #fff7e6;
   --warn-ink: #9a5c00;
+  --success: #2b7d0a;
   --amber: #f4b223;  /* точка-маркер из логотипа: только знаки, не текст (на белом 1,9:1) */
   --font-display: 'Unbounded', 'Arial Black', sans-serif;
 }
@@ -55,6 +56,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 /* форма */
 .section { margin-bottom: 16px; }
 .section > .ant-card-head { background: #fafbfd; }
+.section > .ant-card-head .ant-card-head-title { white-space: normal; }  /* на телефоне название секции переносится, а не режется */
 .field { padding: 12px 12px 14px; margin: 0 -12px; border-radius: 8px; border-left: 3px solid transparent; }
 .field + div .field, .section .ant-card-body > div + div .field { border-top: 1px solid #f0f2f5; }
 .field-ai { background: var(--ai); border-left-color: #6aa1d8; }
@@ -80,6 +82,10 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 .ant-checkbox-wrapper-checked .ant-checkbox-disabled + span { color: var(--ink) !important; }
 .ant-checkbox-disabled.ant-checkbox-checked .ant-checkbox-inner { background: var(--brand) !important; border-color: var(--brand) !important; }
 .ant-checkbox-disabled.ant-checkbox-checked .ant-checkbox-inner::after { border-color: #fff !important; }
+/* метки статусов и «проверьте»: стандартные цвета Ant Design на своих фонах ниже 4,5:1 — берём цвета бренда */
+.ant-tag.ant-tag-green { color: var(--success); }
+.ant-tag.ant-tag-gold, .ant-tag.ant-tag-orange { color: var(--warn-ink); }
+.ant-tag.ant-tag-processing { color: var(--brand); }
 .ta { padding-bottom: 18px; } /* место под счётчик символов, чтобы не наезжал на цитату */
 .warn { margin: 4px 0 0; padding-left: 18px; }
 

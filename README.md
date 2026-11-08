@@ -99,6 +99,8 @@ demo/make_demo.py                 демо-комплект «Агросенсо
 tests/                            test_api.py (pytest), e2e_browser.py (Playwright)
 Dockerfile, docker-compose.yml, Caddyfile, .env.example    развёртывание на ВМ
 amvera.yml                        развёртывание в облаке Amvera
+docs/make_screens.py              скриншоты кабинета организации и видео-демо для презентаций (Playwright + ffmpeg)
+docs/make_logo.py                 логотип: знак «Т.» и горизонтальные версии из шрифта Unbounded
 c02/sources.csv, download.py C02  список 30 комплектов открытых материалов и их загрузка в data/raw
 c04/gold.py                  C04  бланк эталонной разметки (Excel) ⇄ JSON, с проверкой цитат
 c04/split.py                 C04  манифест комплектов и разбиение dev/test (стратифицированное, seed)
