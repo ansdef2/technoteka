@@ -125,11 +125,12 @@ export default function CardPage() {
 
       {card.status === 'returned' && (
         <Alert type="warning" showIcon className="mb" message="Модератор вернул карточку на доработку"
-          description={card.return_comment || 'Исправьте поля и отправьте снова.'} />
+          description={card.moderator_comment || 'Исправьте поля и отправьте снова.'} />
       )}
       {card.status === 'submitted' && <Alert type="success" showIcon className="mb" message="Карточка отправлена на модерацию"
         description="Спасибо! Если модератору понадобятся исправления, карточка вернётся к вам с комментарием." />}
-      {card.status === 'accepted' && <Alert type="success" showIcon className="mb" message="Карточка принята модератором" />}
+      {card.status === 'accepted' && <Alert type="success" showIcon className="mb" message="Карточка принята модератором"
+        description={card.moderator_comment || undefined} />}
 
       {ai && card.status === 'draft' && <UploadStep card={card} onChange={setCard} />}
       {card.status === 'processing' && <Processing />}

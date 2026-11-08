@@ -39,6 +39,7 @@ REQUIRED = SCHEMA.get("x-required-mvp", [])
 ALLOWED_EXT = {".pdf", ".docx", ".pptx", ".html", ".htm", ".txt", ".md", ".jpg", ".jpeg", ".png"}
 MAX_FILES = int(os.environ.get("MAX_FILES", "5"))
 MAX_FILE_MB = int(os.environ.get("MAX_FILE_MB", "20"))
+MAX_CARDS = int(os.environ.get("MAX_CARDS", "20"))  # на организацию, вместе с карточками по плану
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 PUBLIC_URL = os.environ.get("PUBLIC_URL", "http://localhost:8000").rstrip("/")
@@ -199,12 +200,19 @@ def list_my_cards(inv: dict = Depends(current_invite)):
 
 
 @app.post("/api/cards", status_code=201)
-def create_card(inv: dict = Depends(current_invite)):
+def create_card(body: dict | None = None, inv: dict = Depends(current_invite)):
+    """Сначала карточки по плану приглашения — режим и порядок из плана (контрбалансировка замера времени);
+    после них — свои карточки организации в выбранном режиме (body.mode), до MAX_CARDS."""
     with db.connect() as c:
         n = row(c, "SELECT COUNT(*) AS n FROM cards WHERE invite_id = ?", inv["id"])["n"]
-        if n >= len(inv["plan"]):
-            err(409, f"По приглашению предусмотрено карточек: {len(inv['plan'])} — все уже созданы")
-        mode = inv["plan"][n]
+        if n < len(inv["plan"]):
+            mode = inv["plan"][n]
+        else:
+            if n >= MAX_CARDS:
+                err(409, f"Не больше {MAX_CARDS} карточек на организацию")
+            mode = (body or {}).get("mode") or "ai"
+            if mode not in ("ai", "manual"):
+                err(422, "mode: ai или manual")
         cur = c.execute("INSERT INTO cards (invite_id, mode, schema_version) VALUES (?, ?, ?)",
                         (inv["id"], mode, SCHEMA_VERSION))
         card = row(c, "SELECT * FROM cards WHERE id = ?", cur.lastrowid)
@@ -217,8 +225,8 @@ def get_card(card_id: int, inv: dict = Depends(current_invite)):
     with db.connect() as c:
         out = card_full(c, card)
         last = row(c, "SELECT verdict, comment FROM moderation WHERE card_id = ? ORDER BY id DESC LIMIT 1", card_id)
-    # организация видит только комментарий модератора к возврату, без чек-листа
-    out["return_comment"] = last["comment"] if card["status"] == "returned" and last else None
+    # организация видит только комментарий модератора к последнему решению, без чек-листа
+    out["moderator_comment"] = last["comment"] if card["status"] in ("returned", "accepted") and last else None
     return out
 
 
@@ -481,23 +489,27 @@ def export_xlsx(_: str = Depends(admin)):
         timing = {r["card_id"]: r["minutes"] for r in rows(c, "SELECT * FROM card_timing")}
         first = {r["card_id"]: r["accepted_first"] for r in rows(c, "SELECT * FROM first_pass")}
         events = rows(c, "SELECT * FROM events ORDER BY card_id, id")
+        plan_len = {r["id"]: len(jload(r["plan"], [])) for r in rows(c, "SELECT id, plan FROM invites")}
 
     wb = Workbook()
     ws = wb.active
     ws.title = "Карточки"
-    head = ["id", "организация", "режим", "статус", "минут на заполнение", "принята с первого раза",
+    head = ["id", "организация", "режим", "по плану пилота", "статус", "минут на заполнение", "принята с первого раза",
             "заполнено обязательных", "провайдер", "модель", "сек. на извлечение"] + FIELD_KEYS
     ws.append(head)
     ws2 = wb.create_sheet("Поля ИИ")
     ws2.append(["card_id", "поле", "значение ИИ", "итоговое значение", "изменено пользователем",
                 "цитата", "совпадение цитаты", "цитата подтверждена"])
+    seen: dict[int, int] = {}  # сколько карточек организации уже прошло: первые len(plan) — по плану
     for card in cards:
+        nth = seen[card["invite_id"]] = seen.get(card["invite_id"], 0) + 1
         values = jload(card["values_json"], {})
         ai = jload(card["ai_json"]) or {}
         mins = timing.get(card["id"])
         acc = first.get(card["id"])
         filled = sum(not is_empty(values.get(k)) for k in REQUIRED)
-        ws.append([card["id"], card["org_label"], card["mode"], card["status"],
+        ws.append([card["id"], card["org_label"], card["mode"],
+                   "да" if nth <= plan_len.get(card["invite_id"], 0) else "нет — своя карточка", card["status"],
                    round(mins, 1) if mins is not None else None,
                    None if acc is None else ("да" if acc else "нет"),
                    f"{filled}/{len(REQUIRED)}", ai.get("provider"), ai.get("model"), ai.get("latency_s")]

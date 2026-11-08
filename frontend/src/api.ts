@@ -34,7 +34,7 @@ export interface Card extends CardShort {
   values: Record<string, unknown>
   ai: AIResult | null
   files: FileInfo[]
-  return_comment?: string | null
+  moderator_comment?: string | null
 }
 export interface Moderation {
   moderator?: string
@@ -92,7 +92,7 @@ export const api = {
   health: () => req<{ provider: string; schema_version: string; max_files: number; max_file_mb: number }>('GET', '/health'),
   login: (token: string) => req<Session>('POST', '/session', { token }),
   session: () => req<Session>('GET', '/session'),
-  createCard: () => req<Card>('POST', '/cards'),
+  createCard: (mode?: Mode) => req<Card>('POST', '/cards', mode ? { mode } : undefined),
   card: (id: number) => req<Card>('GET', `/cards/${id}`),
   upload: (id: number, files: File[]) => {
     const fd = new FormData()

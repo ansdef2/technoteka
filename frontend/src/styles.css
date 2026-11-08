@@ -28,13 +28,17 @@ body { margin: 0; background: var(--bg); color: #1d2733; }
 .center { display: grid; place-items: center; min-height: 40vh; }
 .mb { margin-bottom: 16px; }
 .mt { margin-top: 12px; }
+.mt-xs { margin-top: 6px; }
 .back { display: inline-flex; gap: 6px; align-items: center; margin-bottom: 12px; color: var(--muted); }
 .card-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .card-page { max-width: 900px; margin: 0 auto; }
 
 /* главная */
 .home-card { margin-bottom: 12px; }
-.home-row { display: flex; align-items: center; gap: 16px; }
+.home-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.home-add { border-style: dashed; }
+.home-text { flex: 1 1 170px; min-width: 0; }
+.home-meta { display: flex; align-items: center; gap: 8px; margin-left: auto; }  /* на телефоне метка статуса уходит строкой ниже, а не ломает слова */
 .home-icon { width: 44px; height: 44px; border-radius: 10px; background: var(--ai); color: var(--brand); display: grid; place-items: center; font-size: 20px; }
 
 /* загрузка и обработка */

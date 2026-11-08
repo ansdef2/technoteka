@@ -98,11 +98,10 @@ def test_full_pilot(client):
     assert client.post(f"/api/cards/{cid}/submit").json()["status"] == "submitted"
     assert client.put(f"/api/cards/{cid}/values", json={"values": v}).status_code == 409
 
-    # вторая карточка — ручная; третью план не допускает
+    # вторая карточка — ручная (по плану); свои карточки сверх плана — test_extra_cards
     manual = client.post("/api/cards").json()
     assert manual["mode"] == "manual"
     assert client.post(f"/api/cards/{manual['id']}/extract").status_code == 409
-    assert client.post("/api/cards").status_code == 409
 
     # модерация
     assert [c["id"] for c in client.get("/api/admin/cards?status=submitted", auth=ADMIN).json()] == [cid]
@@ -115,11 +114,14 @@ def test_full_pilot(client):
                     json={"verdict": "returned", "checklist": {"Наименование": True, "ТТХ": False},
                           "comment": "Добавьте единицы измерения"})
     assert r.json()["status"] == "returned"
+    assert client.get(f"/api/cards/{cid}").json()["moderator_comment"] == "Добавьте единицы измерения"
 
     # организация правит возвращённую и отправляет повторно → принимаем
     assert client.post(f"/api/cards/{cid}/submit").json()["status"] == "submitted"
     client.post("/api/events", json=[{"card_id": cid, "type": "submitted", "ts": "2026-10-18T11:40:00Z"}])
-    client.post(f"/api/admin/cards/{cid}/moderation", auth=ADMIN, json={"verdict": "accepted", "checklist": {}})
+    client.post(f"/api/admin/cards/{cid}/moderation", auth=ADMIN,
+                json={"verdict": "accepted", "checklist": {}, "comment": "Спасибо, всё верно"})
+    assert client.get(f"/api/cards/{cid}").json()["moderator_comment"] == "Спасибо, всё верно"
     a = client.get(f"/api/admin/cards/{cid}", auth=ADMIN).json()
     assert a["status"] == "accepted" and [m["verdict"] for m in a["moderation"]] == ["returned", "accepted"]
     assert a["minutes"] == 12.5  # доработка после возврата не входит во время заполнения
@@ -132,8 +134,30 @@ def test_full_pilot(client):
     head = [c.value for c in wb["Карточки"][1]]
     row = {h: c.value for h, c in zip(head, wb["Карточки"][2])}
     assert row["минут на заполнение"] == 12.5 and row["принята с первого раза"] == "нет"
+    assert row["по плану пилота"] == "да"
     ai_rows = list(wb["Поля ИИ"].iter_rows(min_row=2, values_only=True))
     assert any(r[1] == "org_inn" and r[4] == "нет" for r in ai_rows)
+
+
+def test_extra_cards(client, monkeypatch):
+    """Сначала карточки по плану (режим из плана), потом свои — в выбранном режиме, до MAX_CARDS."""
+    import backend.main as m
+    url = make_invite("Много разработок", ["manual"])
+    client.post("/api/session", json={"token": url.split("t=")[1]})
+    assert client.post("/api/cards", json={"mode": "ai"}).json()["mode"] == "manual"  # по плану mode не действует
+    assert client.post("/api/cards", json={"mode": "manual"}).json()["mode"] == "manual"
+    extra = client.post("/api/cards").json()
+    assert extra["mode"] == "ai"  # своя без режима — с автозаполнением
+    assert client.post("/api/cards", json={"mode": "auto"}).status_code == 422
+    assert len(client.get("/api/session").json()["cards"]) == 3
+    monkeypatch.setattr(m, "MAX_CARDS", 3)
+    assert client.post("/api/cards").status_code == 409
+
+    from openpyxl import load_workbook
+    wb = load_workbook(io.BytesIO(client.get("/api/admin/export.xlsx", auth=ADMIN).content))
+    head = [c.value for c in wb["Карточки"][1]]
+    plan = {r[head.index("id")]: r[head.index("по плану пилота")] for r in wb["Карточки"].iter_rows(min_row=2, values_only=True)}
+    assert plan[extra["id"]] == "нет — своя карточка" and plan[extra["id"] - 2] == "да"
 
 
 def test_extraction_error_returns_to_draft(client, monkeypatch):

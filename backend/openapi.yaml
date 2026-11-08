@@ -95,8 +95,17 @@ paths:
                 items: {$ref: "#/components/schemas/CardShort"}
     post:
       tags: [Пользователь]
-      summary: Создать карточку (режим берётся из плана приглашения)
+      summary: Создать карточку — сначала по плану приглашения, затем свои (до MAX_CARDS)
+      description: Режим карточек по плану берётся из плана, mode игнорируется; для своих карточек — mode (по умолчанию ai).
       operationId: createCard
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode: {$ref: "#/components/schemas/Mode"}
       responses:
         "201":
           description: Создана
@@ -104,6 +113,7 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/Card"}
         "409": {$ref: "#/components/responses/Error"}
+        "422": {$ref: "#/components/responses/Error"}
   /cards/{id}:
     parameters:
       - {$ref: "#/components/parameters/CardId"}
@@ -480,9 +490,9 @@ components:
             files:
               type: array
               items: {$ref: "#/components/schemas/FileInfo"}
-            return_comment:
+            moderator_comment:
               type: [string, "null"]
-              description: Только в GET /cards/{id} при status=returned — комментарий модератора
+              description: Только в GET /cards/{id} при status=returned|accepted — комментарий модератора к последнему решению
     Event:
       type: object
       required: [card_id, type, ts]
