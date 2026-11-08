@@ -77,6 +77,8 @@ paths:
                   ok: {type: boolean}
                   provider: {type: string}
                   schema_version: {type: string}
+                  max_files: {type: integer, description: файлов на карточку (MAX_FILES)}
+                  max_file_mb: {type: integer, description: МБ на файл (MAX_FILE_MB)}
   /cards:
     get:
       tags: [Пользователь]

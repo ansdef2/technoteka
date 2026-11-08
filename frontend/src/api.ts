@@ -79,7 +79,9 @@ async function req<T>(method: string, url: string, body?: unknown, opts: { admin
   let data: any = undefined
   try { data = text ? JSON.parse(text) : undefined } catch { data = text }
   if (!r.ok) {
-    const detail = typeof data?.detail === 'string' ? data.detail : r.status === 422 ? 'Проверьте поля' : `Ошибка ${r.status}`
+    // 413 без detail — это прокси хостинга (у Amvera лимит запроса 10 МБ), а не наш бэкенд
+    const detail = typeof data?.detail === 'string' ? data.detail : r.status === 422 ? 'Проверьте поля'
+      : r.status === 413 ? 'Файл слишком большой для загрузки на сервер' : `Ошибка ${r.status}`
     throw new ApiError(r.status, detail, data)
   }
   return data as T
@@ -87,7 +89,7 @@ async function req<T>(method: string, url: string, body?: unknown, opts: { admin
 
 export const api = {
   schema: () => req<any>('GET', '/schema'),
-  health: () => req<{ provider: string; schema_version: string }>('GET', '/health'),
+  health: () => req<{ provider: string; schema_version: string; max_files: number; max_file_mb: number }>('GET', '/health'),
   login: (token: string) => req<Session>('POST', '/session', { token }),
   session: () => req<Session>('GET', '/session'),
   createCard: () => req<Card>('POST', '/cards'),

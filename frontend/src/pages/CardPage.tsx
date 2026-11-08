@@ -163,9 +163,13 @@ export default function CardPage() {
   )
 }
 
+const UPLOAD_EXT = ['.pdf', '.docx', '.pptx', '.html', '.htm', '.txt']
+
 function UploadStep({ card, onChange }: { card: CardT; onChange: (c: CardT) => void }) {
   const { message } = App.useApp()
   const [starting, setStarting] = useState(false)
+  const [limits, setLimits] = useState({ max_files: 5, max_file_mb: 20 })
+  useEffect(() => { api.health().then(setLimits).catch(() => { /* останутся значения по умолчанию */ }) }, [])
   const refresh = async () => onChange(await api.card(card.id))
 
   const start = async () => {
@@ -188,10 +192,23 @@ function UploadStep({ card, onChange }: { card: CardT; onChange: (c: CardT) => v
           description={<>{card.ai.errors.join('; ')}. Попробуйте другие файлы (с текстовым слоем, не сканы) или запустите ещё раз.</>} />
       ) : null}
       <Paragraph type="secondary">
-        Подойдут презентация, описание продукта, техпаспорт, буклет. PDF, DOCX или PPTX, до 5 файлов, до 20 МБ каждый.
-        Сканы без текстового слоя пока не читаются.
+        Подойдут презентация, описание продукта, техпаспорт, буклет. PDF, DOCX или PPTX, до {limits.max_files} файлов,
+        до {limits.max_file_mb} МБ каждый. Сканы без текстового слоя пока не читаются.
       </Paragraph>
-      <Upload.Dragger multiple showUploadList={false} accept=".pdf,.docx,.pptx,.html,.htm,.txt"
+      {/* без accept: с ним Upload молча выбрасывает перетащенные файлы другого формата (например, .doc) */}
+      <Upload.Dragger multiple showUploadList={false}
+        beforeUpload={(file) => {
+          const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase()
+          if (!UPLOAD_EXT.includes(ext)) {
+            message.error(`${file.name}: формат не поддерживается — сохраните как PDF, DOCX или PPTX`)
+            return Upload.LIST_IGNORE
+          }
+          if (file.size > limits.max_file_mb * 1024 * 1024) {
+            message.error(`${file.name}: больше ${limits.max_file_mb} МБ — сожмите файл или разделите на части`)
+            return Upload.LIST_IGNORE
+          }
+          return true
+        }}
         customRequest={async ({ file, onSuccess, onError }) => {
           try {
             await api.upload(card.id, [file as File])

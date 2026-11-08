@@ -160,7 +160,8 @@ def clean_values(values: dict) -> dict:
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "provider": os.environ.get("LLM_PROVIDER", "mock"), "schema_version": SCHEMA_VERSION}
+    return {"ok": True, "provider": os.environ.get("LLM_PROVIDER", "mock"), "schema_version": SCHEMA_VERSION,
+            "max_files": MAX_FILES, "max_file_mb": MAX_FILE_MB}
 
 
 @app.get("/api/schema")
