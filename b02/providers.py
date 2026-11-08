@@ -16,6 +16,12 @@ import requests
 TIMEOUT = 180
 
 
+def _check(r: requests.Response) -> None:
+    """Как raise_for_status, но с текстом ответа: по голому «403 Forbidden» причину не найти."""
+    if not r.ok:
+        raise requests.HTTPError(f"{r.status_code} {r.reason}: {r.text[:300]}", response=r)
+
+
 class Provider:
     name = "base"
     model = ""
@@ -52,7 +58,7 @@ class YandexProvider(Provider):
             "OpenAI-Project": self.folder,  # каталог — так в примерах AI Studio для /v1/chat/completions
             "x-data-logging-enabled": "false",
         })
-        r.raise_for_status()
+        _check(r)
         data = r.json()
         text = data["choices"][0]["message"]["content"]
         return text, data.get("usage", {}), data
@@ -82,7 +88,7 @@ class GigaChatProvider(Provider):
         r = requests.post(self.OAUTH, data={"scope": self.scope}, verify=self.verify, timeout=30, headers={
             "Authorization": f"Basic {self.auth_key}", "RqUID": str(uuid.uuid4()),
             "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"})
-        r.raise_for_status()
+        _check(r)
         d = r.json()
         self._token = d["access_token"]
         exp = d.get("expires_at", 0)
@@ -99,7 +105,7 @@ class GigaChatProvider(Provider):
         }
         r = requests.post(f"{self.base}/v2/chat/completions", json=body, verify=self.verify, timeout=TIMEOUT,
                           headers={"Authorization": f"Bearer {self._auth()}"})
-        r.raise_for_status()
+        _check(r)
         data = r.json()
         return _find_text(data), _find_usage(data), data
 

@@ -91,7 +91,7 @@ def extract_card(files: list[Path], schema: dict | None = None, provider=None) -
             res.schema_mode = mode
             break
         except Exception as e:
-            res.warnings.append(f"режим {mode}: {type(e).__name__}: {str(e)[:200]}")
+            res.warnings.append(f"режим {mode}: {type(e).__name__}: {str(e)[:400]}")
     res.latency_s = round(time.time() - t0, 2)
     res.tokens_in = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
     res.tokens_out = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
