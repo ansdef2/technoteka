@@ -449,6 +449,21 @@ def admin_create_invite(body: dict, _: str = Depends(admin)):
     return {"url": url}
 
 
+@app.delete("/api/admin/invites/{invite_id}", status_code=204)
+def admin_delete_invite(invite_id: int, _: str = Depends(admin)):
+    """Организация целиком: приглашение и её карточки — с файлами, событиями и модерацией (каскад), файлы с диска."""
+    with db.connect() as c:
+        if not row(c, "SELECT id FROM invites WHERE id = ?", invite_id):
+            err(404, "Приглашение не найдено")
+        card_ids = [r["id"] for r in rows(c, "SELECT id FROM cards WHERE invite_id = ?", invite_id)]
+        c.execute("DELETE FROM cards WHERE invite_id = ?", (invite_id,))
+        c.execute("DELETE FROM invites WHERE id = ?", (invite_id,))
+    for card_id in card_ids:
+        shutil.rmtree(db.FILES_DIR / str(card_id), ignore_errors=True)
+    log.info("invite %s deleted with %d cards", invite_id, len(card_ids))
+    return Response(status_code=204)
+
+
 def _cell(v):
     if isinstance(v, list):
         return "\n".join(f"{x.get('name')}: {x.get('value')}" if isinstance(x, dict) else str(x) for x in v)

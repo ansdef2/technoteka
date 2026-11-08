@@ -14,7 +14,7 @@ python -m backend.cli invite "НИИ Пример" ai,manual     # → ссыл�
 
 * Организация: открыть ссылку-приглашение → «Начать» → загрузить файлы из `demo/agrosensor/` → «Заполнить автоматически».
 * Модератор: http://localhost:8000/admin (admin / пароль из ADMIN_PASSWORD) — карточки, приглашения, чек-лист, выгрузка в Excel.
-* Приглашения — в админке (вкладка «Приглашения») или из консоли: `python -m backend.cli invite …`, список — `python -m backend.cli invites`.
+* Приглашения — в админке (вкладка «Приглашения»: создать, удалить организацию со всеми её карточками) или из консоли: `python -m backend.cli invite …`, список — `python -m backend.cli invites`.
 * API с документацией: http://localhost:8000/api/docs
 
 Разработка фронта с горячей перезагрузкой: бэкенд как выше + `cd frontend && npm run dev` → http://localhost:5173.

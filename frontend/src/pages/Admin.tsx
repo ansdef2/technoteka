@@ -1,6 +1,6 @@
 // Модератор: вход, список карточек, приглашения, выгрузка для КПЭ.
-import { App, Button, Card, Form, Input, Segmented, Select, Space, Table, Tabs, Tag, Typography } from 'antd'
-import { DownloadOutlined, LogoutOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
+import { App, Button, Card, Form, Input, Popconfirm, Segmented, Select, Space, Table, Tabs, Tag, Typography } from 'antd'
+import { DeleteOutlined, DownloadOutlined, LogoutOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, ApiError, hasAdminAuth, MODE, setAdminAuth, STATUS, type CardShort, type Invite, type Mode, type Status } from '../api'
@@ -108,6 +108,22 @@ function InvitesTab() {
           { title: 'Карточек', dataIndex: 'cards', width: 100 },
           { title: 'Создано', dataIndex: 'created_at', width: 150, render: (d: string) => new Date(d).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) },
           { title: 'Ссылка', dataIndex: 'url', render: (u: string) => <Text copyable style={{ wordBreak: 'break-all' }}>{u}</Text> },
+          { key: 'delete', width: 56, render: (_: unknown, r: Invite) => (
+            <Popconfirm title={`Удалить «${r.org_label}»?`} okText="Удалить" cancelText="Отмена" okButtonProps={{ danger: true }}
+              description={<div style={{ maxWidth: 320 }}>
+                {r.cards ? `Вместе с организацией удалятся её карточки (${r.cards}) — с файлами и историей модерации, `
+                  + 'в том числе из выгрузки для КПЭ. ' : ''}Ссылка-приглашение перестанет работать. Отменить нельзя.
+              </div>}
+              onConfirm={async () => {
+                try {
+                  await api.admin.deleteInvite(r.id)
+                  message.success(`«${r.org_label}» удалена`)
+                  load()
+                } catch (e) { message.error((e as Error).message) }
+              }}>
+              <Button type="text" danger icon={<DeleteOutlined />} aria-label={`Удалить ${r.org_label}`} title="Удалить организацию" />
+            </Popconfirm>
+          ) },
         ]} />
     </>
   )

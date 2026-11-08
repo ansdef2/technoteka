@@ -173,6 +173,28 @@ def test_admin_invites(client):
     assert s["org_label"] == "НИИ Админки" and s["plan"] == ["manual", "ai"]
 
 
+def test_admin_delete_invite(client):
+    from backend import db
+    url = client.post("/api/admin/invites", auth=ADMIN, json={"org_label": "НИИ Удаление", "plan": ["ai"]}).json()["url"]
+    client.post("/api/session", json={"token": url.split("t=")[1]})
+    cid = client.post("/api/cards").json()["id"]
+    client.post(f"/api/cards/{cid}/files", files=[("files", ("spec.docx", (DEMO / "spec.docx").read_bytes(), "x"))])
+    client.post("/api/events", json=[{"card_id": cid, "type": "card_opened", "ts": "2026-11-08T10:00:00Z"}])
+    inv = next(i for i in client.get("/api/admin/invites", auth=ADMIN).json() if i["org_label"] == "НИИ Удаление")
+    assert inv["cards"] == 1 and (db.FILES_DIR / str(cid)).is_dir()
+
+    assert client.delete(f"/api/admin/invites/{inv['id']}").status_code == 401
+    assert client.delete(f"/api/admin/invites/{inv['id']}", auth=ADMIN).status_code == 204
+    assert all(i["id"] != inv["id"] for i in client.get("/api/admin/invites", auth=ADMIN).json())
+    assert client.get(f"/api/admin/cards/{cid}", auth=ADMIN).status_code == 404
+    with db.connect() as c:  # файлы и события — каскадом вместе с карточкой
+        assert db.row(c, "SELECT (SELECT COUNT(*) FROM files WHERE card_id = ?) + "
+                         "(SELECT COUNT(*) FROM events WHERE card_id = ?) AS n", cid, cid)["n"] == 0
+    assert not (db.FILES_DIR / str(cid)).exists()
+    assert client.get("/api/session").status_code == 401  # ссылка удалённой организации больше не пускает
+    assert client.delete(f"/api/admin/invites/{inv['id']}", auth=ADMIN).status_code == 404
+
+
 def test_static_spa_fallback(client):
     h = client.get("/api/health").json()
     assert h["ok"] and h["max_files"] == 5 and h["max_file_mb"] == 20 and isinstance(h["ocr"], bool)

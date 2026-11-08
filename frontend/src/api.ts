@@ -111,6 +111,7 @@ export const api = {
     invites: () => req<Invite[]>('GET', '/admin/invites', undefined, { admin: true }),
     createInvite: (org_label: string, plan: Mode[]) =>
       req<{ url: string }>('POST', '/admin/invites', { org_label, plan }, { admin: true }),
+    deleteInvite: (id: number) => req<void>('DELETE', `/admin/invites/${id}`, undefined, { admin: true }),
     download: async (url: string, filename: string) => {
       const r = await req<Response>('GET', url, undefined, { admin: true, raw: true })
       const blob = await r.blob()

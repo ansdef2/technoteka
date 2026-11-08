@@ -357,6 +357,20 @@ paths:
                 properties:
                   url: {type: string, description: ссылка-приглашение для организации}
         "422": {description: Пустое название или неизвестный режим в plan}
+  /admin/invites/{invite_id}:
+    parameters:
+      - name: invite_id
+        in: path
+        required: true
+        schema: {type: integer}
+    delete:
+      tags: [Модератор]
+      summary: Удалить организацию — приглашение и все её карточки с файлами, событиями и модерацией
+      operationId: adminDeleteInvite
+      security: [{basic: []}]
+      responses:
+        "204": {description: Удалено; ссылка-приглашение больше не работает}
+        "404": {description: Приглашение не найдено}
   /admin/export.xlsx:
     get:
       tags: [Модератор]
