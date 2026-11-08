@@ -88,7 +88,11 @@ def _stem_hit(text_l: str, kw: str) -> int:
 
 # шапки и грифы документа — не название продукта
 BOILER_RE = re.compile(r"\bдокумент\b|департамент|конфиденциальн|служебного пользования|коммерческ\w* тайн"
-                       r"|^\s*(утверждаю|согласовано|проект|черновик|приложение|страница)\b", re.I)
+                       r"|^\s*(утверждаю|согласовано|проект|черновик|приложение|страница|шифр|экз\.|пояснительн"
+                       r"|протокол|отч[её]т)\b", re.I)
+# строка с явной подписью — название продукта после двоеточия
+TITLE_LABEL_RE = re.compile(r"^(?:объект разработки|наименование (?:продукта|разработки|изделия)|продукт|изделие)\s*:\s*(.{5,})",
+                            re.I)
 # конец предложения: точка и т. п., дальше заглавная; «г. Казань», «ул. Ленина» — не конец
 SENT_END = re.compile(r"(?<!\b[а-яёa-z])(?<!\b[а-яёa-z]{2})[.!?…](?=\s+[«\"(]?[А-ЯЁA-Z0-9])")
 
@@ -138,8 +142,11 @@ def extract(text: str) -> dict:
         title = re.split(r"\s[|—–-]\s|\s\|\s", m.group(1))[0].strip()
     if not title:
         lines = [ln for ln in _logical_lines(text) if ln and not ln.startswith(("---", "===", "Заголовок"))]
+        labeled = next((m.group(1).strip() for ln in lines if (m := TITLE_LABEL_RE.match(ln))), None)
         i = next((i for i, ln in enumerate(lines) if 5 <= len(ln) <= 150 and not BOILER_RE.search(ln)), None)
-        if i is not None:
+        if labeled:
+            title = labeled
+        elif i is not None:
             title, nxt = lines[i], (lines[i + 1] if i + 1 < len(lines) else "")
             if re.fullmatch(r"«[^»]{2,40}»", nxt):  # «Система контроля…» + строкой ниже «КомпоСкан-УЗК»
                 title = f"{title} {nxt}"

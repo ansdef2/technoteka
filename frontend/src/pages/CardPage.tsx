@@ -175,9 +175,12 @@ function UploadStep({ card, onChange }: { card: CardT; onChange: (c: CardT) => v
   const start = async () => {
     setStarting(true)
     try {
-      await api.extract(card.id)
+      // статус берём из ответа запуска, а не перечитываем карточку: быстрое извлечение успевало
+      // закончиться, карточка приходила уже ready без значений в форме — и автосохранение затирало их.
+      // Конец извлечения и значения в форму подставляет опрос в CardPage
+      const short = await api.extract(card.id)
       track(card.id, 'extraction_started')
-      await refresh()
+      onChange({ ...card, ...short })
     } catch (e) {
       message.error((e as Error).message)
     } finally {

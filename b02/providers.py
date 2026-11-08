@@ -49,6 +49,7 @@ class YandexProvider(Provider):
         }
         r = requests.post(f"{self.base}/chat/completions", json=body, timeout=TIMEOUT, headers={
             "Authorization": f"Api-Key {self.key}",
+            "OpenAI-Project": self.folder,  # каталог — так в примерах AI Studio для /v1/chat/completions
             "x-data-logging-enabled": "false",
         })
         r.raise_for_status()
