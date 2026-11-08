@@ -79,6 +79,7 @@ paths:
                   schema_version: {type: string}
                   max_files: {type: integer, description: файлов на карточку (MAX_FILES)}
                   max_file_mb: {type: integer, description: МБ на файл (MAX_FILE_MB)}
+                  ocr: {type: boolean, description: есть языковые данные Tesseract — сканы и фото распознаются}
   /cards:
     get:
       tags: [Пользователь]

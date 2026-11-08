@@ -26,6 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from backend import db
 from backend.db import jdump, jload, row, rows
 from tools.card import check_card, fields, load_schema
+from tools.doc_text import ocr_ready
 
 log = logging.getLogger("tehnoteka")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -35,7 +36,7 @@ SCHEMA_VERSION = SCHEMA.get("x-version", "")
 FIELD_KEYS = [k for k, _ in fields(SCHEMA)]
 REQUIRED = SCHEMA.get("x-required-mvp", [])
 
-ALLOWED_EXT = {".pdf", ".docx", ".pptx", ".html", ".htm", ".txt", ".md"}
+ALLOWED_EXT = {".pdf", ".docx", ".pptx", ".html", ".htm", ".txt", ".md", ".jpg", ".jpeg", ".png"}
 MAX_FILES = int(os.environ.get("MAX_FILES", "5"))
 MAX_FILE_MB = int(os.environ.get("MAX_FILE_MB", "20"))
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
@@ -161,7 +162,7 @@ def clean_values(values: dict) -> dict:
 @app.get("/api/health")
 def health():
     return {"ok": True, "provider": os.environ.get("LLM_PROVIDER", "mock"), "schema_version": SCHEMA_VERSION,
-            "max_files": MAX_FILES, "max_file_mb": MAX_FILE_MB}
+            "max_files": MAX_FILES, "max_file_mb": MAX_FILE_MB, "ocr": ocr_ready()}
 
 
 @app.get("/api/schema")
@@ -240,7 +241,7 @@ async def upload_files(card_id: int, files: list[UploadFile], inv: dict = Depend
     for f in files:
         ext = Path(f.filename or "").suffix.lower()
         if ext not in ALLOWED_EXT:
-            err(415, f"{f.filename}: формат не поддерживается (нужен PDF, DOCX или PPTX)")
+            err(415, f"{f.filename}: формат не поддерживается (нужен PDF, DOCX, PPTX или фото JPG/PNG)")
         data = await f.read()
         if len(data) > MAX_FILE_MB * 1024 * 1024:
             err(413, f"{f.filename}: больше {MAX_FILE_MB} МБ")

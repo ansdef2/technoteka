@@ -1,24 +1,61 @@
 """Материалы разработки → один текст для модели.
 
 Комплект = папка с файлами одной разработки (или один файл).
-Поддержка: PDF (pymupdf), DOCX (python-docx), PPTX (python-pptx), HTML (beautifulsoup4), TXT/MD.
+Поддержка: PDF (pymupdf), DOCX (python-docx), PPTX (python-pptx), HTML (beautifulsoup4), TXT/MD,
+JPG/PNG (фото и сканы документов).
 В текст вставляются метки «--- стр. N ---» / «--- слайд N ---», чтобы разметчик и модель
-могли сослаться на место цитаты. Сканы без текстового слоя не распознаются (OCR вне MVP).
+могли сослаться на место цитаты. Страницы без текстового слоя (сканы, фото) распознаются OCR —
+Tesseract внутри pymupdf; метка такой страницы — «--- стр. N (OCR) ---».
 """
 from __future__ import annotations
 
+import os
+from functools import lru_cache
 from pathlib import Path
 
-SUPPORTED = {".pdf", ".docx", ".pptx", ".txt", ".md", ".html", ".htm"}
+IMAGES = {".jpg", ".jpeg", ".png"}
+SUPPORTED = {".pdf", ".docx", ".pptx", ".txt", ".md", ".html", ".htm"} | IMAGES
 
 # служебные блоки страницы, которые не относятся к описанию продукта
 HTML_DROP = ["script", "style", "noscript", "svg", "nav", "header", "footer", "form", "iframe", "button"]
 
+# OCR: языковые данные — пакеты tesseract-ocr-rus/-eng (путь — TESSDATA_PREFIX, см. Dockerfile)
+OCR_LANG = os.environ.get("OCR_LANG", "rus+eng")
+OCR_MAX_PAGES = int(os.environ.get("OCR_MAX_PAGES", "30"))  # на файл: OCR — около секунды на страницу
+OCR_MIN_CHARS = 30  # меньше текста на странице с картинкой — считаем её сканом
+
+
+@lru_cache(maxsize=1)
+def ocr_ready() -> bool:
+    """Есть ли языковые данные Tesseract для OCR_LANG (показывается в /api/health)."""
+    try:
+        import pymupdf
+        tessdata = Path(pymupdf.get_tessdata())
+    except Exception:
+        return False
+    return all((tessdata / f"{lang}.traineddata").exists() for lang in OCR_LANG.split("+"))
+
 
 def _pdf(path: Path) -> str:
+    """PDF или картинка; страницы-сканы распознаются OCR (не больше OCR_MAX_PAGES на файл)."""
     import pymupdf
-    with pymupdf.open(path) as doc:
-        return "\n".join(f"--- стр. {i} ---\n{page.get_text()}" for i, page in enumerate(doc, 1))
+    out, ocr_left = [], OCR_MAX_PAGES
+    with pymupdf.open(path) as src:
+        doc = src if src.is_pdf else pymupdf.open("pdf", src.convert_to_pdf())
+        for i, page in enumerate(doc, 1):
+            text, mark = page.get_text(), ""
+            if len(text.strip()) < OCR_MIN_CHARS and page.get_images():
+                if ocr_left <= 0:
+                    mark = " (скан, не распознан: лимит OCR)"
+                else:
+                    ocr_left -= 1
+                    try:
+                        text = page.get_text(textpage=page.get_textpage_ocr(language=OCR_LANG, dpi=300, full=True))
+                        mark = " (OCR)"
+                    except Exception:  # нет языковых данных Tesseract (локальный запуск без него)
+                        mark = " (скан, OCR недоступен)"
+            out.append(f"--- стр. {i}{mark} ---\n{text}")
+    return "\n".join(out)
 
 
 def _docx(path: Path) -> str:
@@ -73,7 +110,7 @@ def _html(path: Path) -> str:
 
 def file_text(path: Path) -> str:
     ext = path.suffix.lower()
-    if ext == ".pdf":
+    if ext == ".pdf" or ext in IMAGES:
         return _pdf(path)
     if ext == ".docx":
         return _docx(path)

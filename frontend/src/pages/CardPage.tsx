@@ -163,7 +163,7 @@ export default function CardPage() {
   )
 }
 
-const UPLOAD_EXT = ['.pdf', '.docx', '.pptx', '.html', '.htm', '.txt']
+const UPLOAD_EXT = ['.pdf', '.docx', '.pptx', '.html', '.htm', '.txt', '.jpg', '.jpeg', '.png']
 
 function UploadStep({ card, onChange }: { card: CardT; onChange: (c: CardT) => void }) {
   const { message } = App.useApp()
@@ -192,8 +192,8 @@ function UploadStep({ card, onChange }: { card: CardT; onChange: (c: CardT) => v
           description={<>{card.ai.errors.join('; ')}. Попробуйте другие файлы (с текстовым слоем, не сканы) или запустите ещё раз.</>} />
       ) : null}
       <Paragraph type="secondary">
-        Подойдут презентация, описание продукта, техпаспорт, буклет. PDF, DOCX или PPTX, до {limits.max_files} файлов,
-        до {limits.max_file_mb} МБ каждый. Сканы без текстового слоя пока не читаются.
+        Подойдут презентация, описание продукта, техпаспорт, буклет. PDF, DOCX, PPTX или фото документов (JPG, PNG),
+        до {limits.max_files} файлов, до {limits.max_file_mb} МБ каждый. Сканы распознаются автоматически.
       </Paragraph>
       {/* без accept: с ним Upload молча выбрасывает перетащенные файлы другого формата (например, .doc) */}
       <Upload.Dragger multiple showUploadList={false}

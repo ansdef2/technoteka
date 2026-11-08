@@ -64,8 +64,14 @@ def extract_card(files: list[Path], schema: dict | None = None, provider=None) -
         except Exception as e:
             res.warnings.append(f"{f.name}: не удалось прочитать ({type(e).__name__})")
             continue
+        ocr = " (OCR) ---" in t
         if len(t) < 200:
-            res.warnings.append(f"{f.name}: почти нет текста — возможно, скан")
+            res.warnings.append(f"{f.name}: распознано мало текста — проверьте качество скана" if ocr
+                                else f"{f.name}: почти нет текста — возможно, скан")
+        if ocr:
+            res.warnings.append(f"{f.name}: скан — текст распознан автоматически (OCR), проверьте поля внимательнее")
+        if "(скан, " in t:
+            res.warnings.append(f"{f.name}: часть страниц — сканы, которые не удалось распознать")
         if t:
             parts.append(f"=== Файл: {f.name} ===\n{t}")
     text = "\n\n".join(parts)

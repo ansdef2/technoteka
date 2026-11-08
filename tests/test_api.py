@@ -175,5 +175,5 @@ def test_admin_invites(client):
 
 def test_static_spa_fallback(client):
     h = client.get("/api/health").json()
-    assert h["ok"] and h["max_files"] == 5 and h["max_file_mb"] == 20
+    assert h["ok"] and h["max_files"] == 5 and h["max_file_mb"] == 20 and isinstance(h["ocr"], bool)
     assert client.get("/api/nope").status_code == 404

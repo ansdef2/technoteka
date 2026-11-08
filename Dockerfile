@@ -12,6 +12,13 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 DATA_DIR=/data STATIC_DIR=/app/static LLM_PROVIDER=demo
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+# языковые данные для OCR сканов (сам Tesseract встроен в pymupdf); папка зависит от версии пакета —
+# находим её и даём постоянный путь, а без данных сборка падает, чтобы OCR не выключился молча
+RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr-rus tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s "$(dirname "$(find /usr/share/tesseract-ocr -name rus.traineddata | head -1)")" /usr/share/tessdata \
+    && test -f /usr/share/tessdata/rus.traineddata -a -f /usr/share/tessdata/eng.traineddata
+ENV TESSDATA_PREFIX=/usr/share/tessdata
 COPY schema/ schema/
 COPY tools/ tools/
 COPY b02/ b02/

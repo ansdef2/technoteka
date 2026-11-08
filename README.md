@@ -27,6 +27,11 @@ python -m backend.cli invite "НИИ Пример" ai,manual     # → ссыл�
 | `yandex` / `gigachat` | настоящее извлечение (ключи — ниже, раздел B02) |
 | `mock` | заведомо ложный ответ («ООО «Выдумка»») — для тестов проверки цитат |
 
+**Сканы и фото документов** (PDF без текстового слоя, JPG, PNG) распознаются OCR — Tesseract, встроенный
+в pymupdf, языки `OCR_LANG=rus+eng`, не больше `OCR_MAX_PAGES=30` страниц-сканов на файл. Работает с любым
+провайдером. В Docker-образе языковые данные уже есть; локально — `apt install tesseract-ocr-rus tesseract-ocr-eng`
+(без них сканы помечаются «OCR недоступен»). Готовность — поле `ocr` в `/api/health`.
+
 GitHub Pages и другой статический хостинг не подходят: нужен работающий бэкенд (FastAPI + SQLite),
 фронт без него не работает. Два варианта — облако Amvera или своя ВМ.
 
@@ -79,7 +84,7 @@ docker compose exec -u app app python -m backend.cli invite "НИИ Пример
 ```
 schema/card_schema_v0.json   A02  шаблон карточки v0: 22 поля MVP (15 обязательных), единый источник правды
 tools/card.py                     схема → LLM-схема (full/flat), разбор ответа, проверка формата и цитат
-tools/doc_text.py                 PDF/DOCX/PPTX → текст с метками страниц/слайдов
+tools/doc_text.py                 PDF/DOCX/PPTX/фото → текст с метками страниц/слайдов; сканы — OCR
 tools/prompt.py                   промпт извлечения v0 (основа для D02)
 b02/compare.py, providers.py B02  прогон провайдеров на одних документах → review.xlsx
 backend/openapi.yaml         B03  контракт фронт ↔ бэк (OpenAPI 3.1)
