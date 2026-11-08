@@ -44,7 +44,7 @@ export default function Home() {
   const two = session.plan.length > 1
   return (
     <div className="narrow">
-      <Title level={2} style={{ marginBottom: 4 }}>Здравствуйте!</Title>
+      <Title level={2} className="display" style={{ marginBottom: 4 }}>Здравствуйте!</Title>
       <Paragraph type="secondary" style={{ fontSize: 16 }}>{session.org_label}</Paragraph>
       <Paragraph style={{ fontSize: 16 }}>
         Здесь вы заполняете карточку своей разработки для Витрины разработок. Загрузите материалы

@@ -46,7 +46,7 @@ export default function Admin() {
   return (
     <div>
       <div className="admin-head">
-        <Title level={3} style={{ margin: 0 }}>Модерация</Title>
+        <Title level={3} className="display" style={{ margin: 0 }}>Модерация</Title>
         <Space>
           <Button icon={<DownloadOutlined />} onClick={() => api.admin.download('/admin/export.xlsx', 'tehnoteka_export.xlsx')}>Выгрузка для КПЭ (Excel)</Button>
           <Button icon={<LogoutOutlined />} onClick={() => { setAdminAuth('', null); setOk(false) }}>Выйти</Button>

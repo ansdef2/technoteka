@@ -7,6 +7,12 @@ import Home from './pages/Home'
 import CardPage from './pages/CardPage'
 import Admin from './pages/Admin'
 import AdminCard from './pages/AdminCard'
+// шрифты бренда (брендбук): Golos Text — интерфейс, Unbounded — название и крупные заголовки
+import '@fontsource/golos-text/400.css'
+import '@fontsource/golos-text/500.css'
+import '@fontsource/golos-text/600.css'
+import '@fontsource/golos-text/700.css'
+import '@fontsource/unbounded/600.css'
 import './styles.css'
 
 function Shell() {
@@ -15,9 +21,9 @@ function Shell() {
     <div className="app">
       <header className="top">
         <Link to={admin ? '/admin' : '/'} className="brand">
-          <span className="logo">Т</span>
+          <img src="/brand/mark.svg" className="logo" alt="" />
           <span>
-            <b>Технотека.ИИ</b>
+            <b className="wordmark">Технотека<i>.</i><span>ИИ</span></b>
             <small>{admin ? 'Модерация карточек' : 'Карточка разработки для Витрины'}</small>
           </span>
         </Link>
@@ -39,7 +45,7 @@ function Shell() {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ConfigProvider locale={ruRU} theme={{
-      token: { colorPrimary: '#1f4e79', borderRadius: 8, fontFamily: "'Inter', 'Segoe UI', Roboto, Arial, sans-serif" },
+      token: { colorPrimary: '#1f4e79', borderRadius: 8, fontFamily: "'Golos Text', 'Segoe UI', Roboto, Arial, sans-serif" },
     }}>
       <AntApp>
         <BrowserRouter>
